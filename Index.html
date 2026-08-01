@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в Мессенджер</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="login-card" id="loginCard">
+        <h2>Вход в Messenger</h2>
+        <p class="subtitle">Введите свои данные для подключения</p>
+        
+        <form id="loginForm">
+            <div class="input-group">
+                <input type="text" id="username" placeholder="Логин или Никнейм" required>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" id="password" placeholder="Пароль" required>
+            </div>
+            
+            <button type="submit" id="loginBtn">Войти</button>
+        </form>
+    </div>
+
+    <!-- Экран, который покажется после "успешного" логина -->
+    <div class="chat-placeholder" id="chatScreen" style="display: none;">
+        <h2>Добро пожаловать, <span id="userDisplay"></span>! 👋</h2>
+        <p>Вы успешно вошли в симулятор мессенджера.</p>
+        <button onclick="logout()" class="logout-btn">Выйти</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
