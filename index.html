@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Assistant Pro</title>
-    <!-- Подключение Маркдаун и подсветки кода -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
@@ -25,11 +24,11 @@
         .btn-red { background: #8b0000; border: none; }
 
         .chat-box { flex: 1; overflow-y: auto; background: #121212; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; border: 1px solid #222; }
-        .msg { padding: 10px 14px; border-radius: 10px; max-width: 92%; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
+        .msg { padding: 10px 14px; border-radius: 10px; max-width: 92%; font-size: 14px; line-height: 1.6; word-wrap: break-word; position: relative; }
         .user-msg { background: #0056b3; align-self: flex-end; color: white; }
         .ai-msg { background: #1e1e1e; align-self: flex-start; border: 1px solid #333; color: #e0e0e0; }
         
-        pre { background: #000; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; border: 1px solid #333; }
+        pre { background: #000; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; border: 1px solid #333; position: relative; }
         code { font-family: monospace; }
         
         .input-box { display: flex; gap: 8px; }
@@ -40,14 +39,14 @@
     <div class="header">
         <label>API КЛЮЧ:</label>
         <div class="row">
-            <input type="text" id="apiKey" placeholder="sk-or-v1-..." oninput="saveKey()">
+            <input type="password" id="apiKey" placeholder="sk-or-v1-..." oninput="saveKey()">
         </div>
         
         <label style="margin-top: 8px;">МОДЕЛЬ:</label>
         <div class="row">
             <select id="modelSelect">
+                <option value="qwen/qwen-2.5-coder-32b-instruct:free">Qwen 2.5 Coder 32B (Для кода)</option>
                 <option value="openai/gpt-oss-20b:free">GPT-OSS 20B (OpenAI Free)</option>
-                <option value="qwen/qwen-2.5-coder-32b-instruct:free">Qwen 2.5 Coder 32B</option>
                 <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B</option>
                 <option value="deepseek/deepseek-r1:free">DeepSeek R1</option>
             </select>
@@ -56,7 +55,7 @@
     </div>
 
     <div class="chat-box" id="chatBox">
-        <div class="msg ai-msg">Привет! Выбрана модель GPT-OSS 20B. Задавай вопрос.</div>
+        <div class="msg ai-msg">Привет! Включен стриминг ответов. Задавай вопрос.</div>
     </div>
 
     <div class="input-box">
@@ -78,8 +77,8 @@
         }
 
         function resetConversation() {
-            conversationHistory = [{ role: "system", content: "Ты опытный программист и универсальный помощник. Пиши понятный и рабочий код." }];
-            document.getElementById('chatBox').innerHTML = '<div class="msg ai-msg">Чат очищен. Память сброшена.</div>';
+            conversationHistory = [{ role: "system", content: "Ты опытный Python-разработчик и помощник. Пиши рабочий код." }];
+            document.getElementById('chatBox').innerHTML = '<div class="msg ai-msg">Чат очищен.</div>';
             saveKey();
         }
 
@@ -90,7 +89,7 @@
             const sendBtn = document.getElementById('sendBtn');
             const prompt = input.value.trim();
             
-            if(!apiKey) return alert("Введите API ключ OpenRouter!");
+            if(!apiKey) return alert("Введите API ключ!");
             if(!prompt) return;
 
             if(conversationHistory.length === 0) resetConversation();
@@ -100,13 +99,13 @@
             input.value = "";
             sendBtn.disabled = true;
 
-            const aiDiv = appendMessage("Печатает...", "ai-msg");
+            const aiDiv = appendMessage("Thinking...", "ai-msg");
+            aiDiv.innerText = ""; // очищаем для стрима
+
+            // Ограничиваем историю последними 6 сообщениями, чтобы не перегружать запрос
+            const recentMessages = conversationHistory.slice(-6);
 
             try {
-                // Устанавливаем тайм-аут 60 секунд
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000);
-
                 const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
                     headers: {
@@ -117,41 +116,59 @@
                     },
                     body: JSON.stringify({
                         model: selectedModel,
-                        messages: conversationHistory
-                    }),
-                    signal: controller.signal
+                        messages: recentMessages,
+                        stream: true // Потоковая передача!
+                    })
                 });
 
-                clearTimeout(timeoutId);
-                const data = await response.json();
-
-                if (response.ok && data.choices && data.choices.length > 0) {
-                    const reply = data.choices[0].message.content;
-                    conversationHistory.push({ role: "assistant", content: reply });
-                    
-                    if (window.marked) {
-                        aiDiv.innerHTML = marked.parse(reply);
-                        if (window.hljs) hljs.highlightAll();
-                    } else {
-                        aiDiv.innerText = reply;
-                    }
-                } else {
-                    const errorMsg = data.error ? data.error.message : ("Ошибка: " + response.status);
-                    aiDiv.innerText = "⚠️ " + errorMsg;
-                    conversationHistory.pop();
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error ? errData.error.message : response.status);
                 }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let fullText = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split("\n");
+
+                    for (const line of lines) {
+                        if (line.startsWith("data: ")) {
+                            const jsonStr = line.replace("data: ", "").trim();
+                            if (jsonStr === "[DONE]") break;
+
+                            try {
+                                const parsed = JSON.parse(jsonStr);
+                                const content = parsed.choices[0]?.delta?.content || "";
+                                fullText += content;
+
+                                if (window.marked) {
+                                    aiDiv.innerHTML = marked.parse(fullText);
+                                    if (window.hljs) hljs.highlightAll();
+                                } else {
+                                    aiDiv.innerText = fullText;
+                                }
+                                scrollToBottom();
+                            } catch (e) {
+                                // пропуск некорректных чанков
+                            }
+                        }
+                    }
+                }
+
+                conversationHistory.push({ role: "assistant", content: fullText });
 
             } catch (e) {
-                if (e.name === 'AbortError') {
-                    aiDiv.innerText = "⏱️ Превышено время ожидания ответа.";
-                } else {
-                    aiDiv.innerText = "🌐 Ошибка сети: " + e.message;
-                }
+                aiDiv.innerText = "🌐 Ошибка: " + e.message;
                 conversationHistory.pop();
             } finally {
                 sendBtn.disabled = false;
-                const chatBox = document.getElementById('chatBox');
-                chatBox.scrollTop = chatBox.scrollHeight;
+                scrollToBottom();
             }
         }
 
@@ -161,8 +178,13 @@
             div.className = `msg ${className}`;
             div.innerText = text;
             chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            scrollToBottom();
             return div;
+        }
+
+        function scrollToBottom() {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
     </script>
 </body>
