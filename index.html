@@ -3,179 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Assistant</title>
+    <title>AI Assistant Pro</title>
+    <!-- Маркдаун и подсветка кода -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #121212; color: #e0e0e0; display: flex; flex-direction: column; height: 100vh; padding: 12px; }
-        .header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-        label { font-size: 11px; color: #aaa; font-weight: bold; letter-spacing: 0.5px; }
+        body { background-color: #0d0d0d; color: #e0e0e0; display: flex; flex-direction: column; height: 100vh; padding: 10px; }
         
-        .key-row { display: flex; gap: 8px; }
-        .key-row input { flex: 1; }
-        .apply-btn { background: #28a745; color: white; padding: 0 16px; font-size: 13px; }
-        .apply-btn:active { background: #1e7e34; }
+        .header { background: #1a1a1a; padding: 10px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; }
+        label { font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; }
+        
+        .row { display: flex; gap: 8px; margin-top: 5px; }
+        input, select, textarea { background: #000; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 14px; outline: none; flex: 1; }
+        
+        button { background: #222; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        button:active { background: #444; }
+        .btn-blue { background: #007bff; border: none; }
+        .btn-red { background: #8b0000; border: none; }
 
-        input, select, button { background: #1e1e1e; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 8px; font-size: 14px; outline: none; }
-        input:focus, select:focus { border-color: #007bff; }
+        .chat-box { flex: 1; overflow-y: auto; background: #121212; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; border: 1px solid #222; }
+        .msg { padding: 10px 14px; border-radius: 10px; max-width: 92%; font-size: 14px; line-height: 1.6; }
+        .user-msg { background: #0056b3; align-self: flex-end; }
+        .ai-msg { background: #1e1e1e; align-self: flex-start; border: 1px solid #333; }
         
-        .send-btn { background: #007bff; color: #fff; border: none; font-weight: bold; cursor: pointer; }
-        .send-btn:active { background: #0056b3; }
-        .send-btn:disabled { background: #444; color: #888; }
+        /* Подсветка кода */
+        pre { background: #000; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 5px 0; }
+        code { font-family: 'Courier New', Courier, monospace; }
         
-        .status-badge { font-size: 11px; color: #ffc107; margin-top: -2px; }
-        .status-badge.active { color: #28a745; }
-
-        .chat-box { flex: 1; overflow-y: auto; background: #181818; border-radius: 8px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; word-wrap: break-word; font-size: 14px; line-height: 1.4; }
-        .user-msg { background: #007bff; align-self: flex-end; color: white; }
-        .ai-msg { background: #2a2a2a; align-self: flex-start; color: #e0e0e0; border: 1px solid #333; }
         .input-box { display: flex; gap: 8px; }
-        .input-box input { flex: 1; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <label>API КЛЮЧ OPENROUTER:</label>
-        <div class="key-row">
-            <input type="password" id="apiKey" placeholder="sk-or-v1-...">
-            <button class="apply-btn" onclick="applyKey()">Применить</button>
+        <label>API КЛЮЧ:</label>
+        <div class="row">
+            <input type="text" id="apiKey" placeholder="sk-or-v1-...">
         </div>
-        <div id="keyStatus" class="status-badge">⚠️ Ключ не применен</div>
-
-        <label style="margin-top: 4px;">ВЫБОР БЕСПЛАТНОЙ МОДЕЛИ:</label>
-        <select id="modelSelect" onchange="saveModel()">
-            <option value="openrouter/free">Авто-выбор (OpenRouter Free)</option>
-            <option value="qwen/qwen-2.5-coder-32b-instruct:free">Qwen 2.5 Coder 32B (Для кода)</option>
-            <option value="deepseek/deepseek-r1:free">DeepSeek R1 (Рассуждения)</option>
-            <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Универсальная)</option>
-        </select>
+        
+        <label style="margin-top: 10px;">СИСТЕМНАЯ РОЛЬ:</label>
+        <div class="row">
+            <select id="sysRole" onchange="resetConversation()">
+                <option value="Ты — полезный ИИ-ассистент.">Универсальный помощник</option>
+                <option value="Ты — опытный Python-разработчик. Пиши только чистый код, минимум слов.">Python Разработчик</option>
+                <option value="Ты — строгий репетитор. Объясняй всё просто, с примерами.">Репетитор</option>
+                <option value="Ты — переводчик с любого языка на русский.">Переводчик</option>
+            </select>
+            <button class="btn-red" onclick="resetConversation()">🗑️ Сброс</button>
+        </div>
     </div>
 
     <div class="chat-box" id="chatBox">
-        <div class="msg ai-msg">Привет! Вставь свой ключ, нажми «Применить» и задавай любые вопросы.</div>
+        <div class="msg ai-msg">Привет! Введи ключ, выбери роль и начнем.</div>
     </div>
 
     <div class="input-box">
-        <input type="text" id="userInput" placeholder="Введите сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
-        <button id="sendBtn" class="send-btn" onclick="sendMessage()">➔</button>
+        <input type="text" id="userInput" placeholder="Сообщение...">
+        <button class="btn-blue" onclick="sendMessage()">➤</button>
     </div>
 
     <script>
-        // Глобальная переменная для 100% гарантии хранения ключа в памяти
-        let activeApiKey = "";
+        let conversationHistory = []; // Память диалога
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const savedKey = localStorage.getItem("or_api_key");
-            const savedModel = localStorage.getItem("or_model");
-
-            if (savedKey) {
-                document.getElementById("apiKey").value = savedKey;
-                applyKey(false); // Подтягиваем сохраненный ключ без алертов
-            }
-            if (savedModel) {
-                document.getElementById("modelSelect").value = savedModel;
-            }
+        // Инициализация подсветки кода
+        marked.setOptions({
+            highlight: (code, lang) => hljs.highlightAuto(code).value
         });
 
-        function applyKey(showNotice = true) {
-            const rawKey = document.getElementById("apiKey").value;
-            // Жестко очищаем от любых пробелов, переносов и кавычек
-            activeApiKey = rawKey.trim().replace(/["']/g, "");
-
-            const statusDiv = document.getElementById("keyStatus");
-
-            if (activeApiKey.startsWith("sk-or-v1-")) {
-                localStorage.setItem("or_api_key", activeApiKey);
-                statusDiv.innerText = "✅ Ключ применен и сохранен!";
-                statusDiv.className = "status-badge active";
-                if (showNotice) alert("Ключ успешно применен!");
-            } else if (activeApiKey.length > 0) {
-                statusDiv.innerText = "⚠️ Странный формат ключа (должен начинаться с sk-or-v1-)";
-                statusDiv.className = "status-badge";
-                localStorage.setItem("or_api_key", activeApiKey);
-            } else {
-                statusDiv.innerText = "❌ Ключ пустой";
-                statusDiv.className = "status-badge";
-            }
-        }
-
-        function saveModel() {
-            localStorage.setItem("or_model", document.getElementById("modelSelect").value);
+        function resetConversation() {
+            const role = document.getElementById('sysRole').value;
+            conversationHistory = [{ role: "system", content: role }];
+            document.getElementById('chatBox').innerHTML = '<div class="msg ai-msg">Чат очищен. Новая роль: ' + document.getElementById('sysRole').options[document.getElementById('sysRole').selectedIndex].text + '</div>';
+            localStorage.setItem("or_api_key", document.getElementById('apiKey').value);
         }
 
         async function sendMessage() {
-            // Если кнопку "Применить" не нажали, берем то, что введено в поле прямо сейчас
-            if (!activeApiKey) {
-                applyKey(false);
-            }
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const input = document.getElementById('userInput');
+            const prompt = input.value.trim();
+            
+            if(!apiKey) return alert("Введите ключ!");
+            if(!prompt) return;
 
-            const model = document.getElementById("modelSelect").value;
-            const inputField = document.getElementById("userInput");
-            const sendBtn = document.getElementById("sendBtn");
-            const prompt = inputField.value.trim();
+            // Если история пуста (после сброса), добавляем системную роль
+            if(conversationHistory.length === 0) resetConversation();
 
-            if (!activeApiKey) {
-                alert("Ошибка: Нажмите кнопку «Применить» рядом с API-ключом!");
-                return;
-            }
-            if (!prompt) return;
-
+            conversationHistory.push({ role: "user", content: prompt });
             appendMessage(prompt, "user-msg");
-            inputField.value = "";
-            sendBtn.disabled = true;
+            input.value = "";
 
-            const aiMsgDiv = appendMessage("Печатает...", "ai-msg");
+            const aiDiv = appendMessage("...", "ai-msg");
 
             try {
                 const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
                     headers: {
-                        "Authorization": `Bearer ${activeApiKey}`,
-                        "HTTP-Referer": "https://github.com",
-                        "X-Title": "AI Assistant App",
+                        "Authorization": `Bearer ${apiKey}`,
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        "model": model,
-                        "messages": [
-                            {"role": "user", "content": prompt}
-                        ]
+                        model: "openrouter/free",
+                        messages: conversationHistory
                     })
                 });
 
                 const data = await response.json();
+                const reply = data.choices[0].message.content;
 
-                if (response.ok && data.choices && data.choices.length > 0) {
-                    aiMsgDiv.innerText = data.choices[0].message.content;
-                } else if (data.error) {
-                    aiMsgDiv.innerText = "Ошибка API: " + (data.error.message || JSON.stringify(data.error));
-                } else {
-                    aiMsgDiv.innerText = "Ошибка сервера: " + response.status;
-                }
-            } catch (err) {
-                aiMsgDiv.innerText = "Ошибка сети: " + err.message;
-            } finally {
-                sendBtn.disabled = false;
-                scrollToBottom();
+                conversationHistory.push({ role: "assistant", content: reply });
+                aiDiv.innerHTML = marked.parse(reply);
+                document.getElementById('chatBox').scrollTop = 9999;
+
+            } catch (e) {
+                aiDiv.innerText = "Ошибка: " + e.message;
             }
         }
 
         function appendMessage(text, className) {
-            const chatBox = document.getElementById("chatBox");
-            const msgDiv = document.createElement("div");
-            msgDiv.className = `msg ${className}`;
-            msgDiv.innerText = text;
-            chatBox.appendChild(msgDiv);
-            scrollToBottom();
-            return msgDiv;
-        }
-
-        function scrollToBottom() {
-            const chatBox = document.getElementById("chatBox");
-            chatBox.scrollTop = chatBox.scrollHeight;
+            const chatBox = document.getElementById('chatBox');
+            const div = document.createElement('div');
+            div.className = `msg ${className}`;
+            div.innerHTML = text; // Упрощенно
+            chatBox.appendChild(div);
+            return div;
         }
     </script>
 </body>
 </html>
-
