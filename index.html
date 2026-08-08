@@ -9,122 +9,127 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
 
     <style>
+        :root { --bg-color: #0d0d0d; --panel-bg: #1a1a1a; --chat-bg: #121212; --text-color: #e0e0e0; --accent: #007bff; --border: #333; }
+        
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #0d0d0d; color: #e0e0e0; display: flex; flex-direction: column; height: 100vh; padding: 10px; }
-        
-        .header { background: #1a1a1a; padding: 10px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; }
-        label { font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; }
-        
-        .row { display: flex; gap: 8px; margin-top: 5px; }
-        input, select { background: #000; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 14px; outline: none; flex: 1; }
-        
-        button { background: #222; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-        button:active { background: #444; }
-        .btn-blue { background: #007bff; border: none; font-weight: bold; }
-        .btn-red { background: #8b0000; border: none; }
+        body { background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-        .chat-box { flex: 1; overflow-y: auto; background: #121212; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; border: 1px solid #222; }
+        /* ЭКРАНЫ */
+        .tab-content { display: none; flex: 1; flex-direction: column; padding: 10px; overflow: hidden; }
+        .tab-content.active { display: flex; }
+
+        /* НАСТРОЙКИ */
+        .settings-panel { padding: 10px; }
+        label { font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        input, select { background: #000; color: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 8px; width: 100%; margin-bottom: 15px; }
+
+        /* ЧАТ */
+        .chat-box { flex: 1; overflow-y: auto; background: var(--chat-bg); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border); }
         .msg { padding: 10px 14px; border-radius: 10px; max-width: 92%; font-size: 14px; line-height: 1.6; word-wrap: break-word; position: relative; }
-        .user-msg { background: #0056b3; align-self: flex-end; color: white; }
-        .ai-msg { background: #1e1e1e; align-self: flex-start; border: 1px solid #333; color: #e0e0e0; }
+        .user-msg { background: var(--accent); align-self: flex-end; color: white; }
+        .ai-msg { background: var(--panel-bg); align-self: flex-start; border: 1px solid var(--border); }
         
-        pre { background: #000; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; border: 1px solid #333; position: relative; }
-        code { font-family: monospace; }
-        
-        .input-box { display: flex; gap: 8px; }
+        .input-box { display: flex; gap: 8px; padding-bottom: 10px; }
+        input#userInput { margin-bottom: 0; flex: 1; }
+
+        /* НАВИГАЦИЯ */
+        .bottom-nav { display: flex; background: #111; border-top: 1px solid var(--border); height: 60px; }
+        .nav-btn { flex: 1; background: none; border: none; color: #888; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+        .nav-btn.active { color: var(--accent); }
+
+        /* КОД */
+        pre { background: #000; padding: 12px; border-radius: 6px; margin: 8px 0; border: 1px solid var(--border); position: relative; }
+        .copy-btn { position: absolute; top: 5px; right: 5px; background: #333; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-size: 9px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <label>API КЛЮЧ:</label>
-        <div class="row">
+    <!-- ЭКРАН ЧАТА -->
+    <div id="chatTab" class="tab-content active">
+        <div class="chat-box" id="chatBox">
+            <div class="msg ai-msg">Привет! Готов к работе.</div>
+        </div>
+        <div class="input-box">
+            <input type="text" id="userInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()" style="background:var(--accent); color:white; border:none; padding:0 15px; border-radius:8px;">➤</button>
+        </div>
+    </div>
+
+    <!-- ЭКРАН НАСТРОЕК -->
+    <div id="settingsTab" class="tab-content">
+        <div class="settings-panel">
+            <label>API КЛЮЧ:</label>
             <input type="password" id="apiKey" placeholder="sk-or-v1-..." oninput="saveKey()">
-        </div>
-        
-        <label style="margin-top: 8px;">МОДЕЛЬ:</label>
-        <div class="row">
+            
+            <label>МОДЕЛЬ:</label>
             <select id="modelSelect">
-                <option value="qwen/qwen-2.5-coder-32b-instruct:free">Qwen 2.5 Coder 32B (Для кода)</option>
-                <option value="openai/gpt-oss-20b:free">GPT-OSS 20B (OpenAI Free)</option>
-                <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B</option>
-                <option value="deepseek/deepseek-r1:free">DeepSeek R1</option>
+                <option value="google/gemini-2.0-flash-lite-preview-02-05:free">⚡ Gemini 2.0 Flash</option>
+                <option value="openai/gpt-oss-20b:free">🧠 GPT-OSS 20B</option>
+                <option value="qwen/qwen-2.5-coder-32b-instruct:free">💻 Qwen 2.5 Coder 32B</option>
             </select>
-            <button class="btn-red" onclick="resetConversation()">🗑️ Сброс</button>
+
+            <button onclick="resetConversation()" style="width: 100%; background: #8b0000; border:none; color:white; padding:12px; border-radius:8px;">🗑️ Сбросить историю</button>
         </div>
     </div>
 
-    <div class="chat-box" id="chatBox">
-        <div class="msg ai-msg">Привет! Включен стриминг ответов. Задавай вопрос.</div>
-    </div>
-
-    <div class="input-box">
-        <input type="text" id="userInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
-        <button id="sendBtn" class="btn-blue" onclick="sendMessage()">➤</button>
-    </div>
+    <!-- НИЖНЯЯ ПАНЕЛЬ -->
+    <nav class="bottom-nav">
+        <button class="nav-btn active" onclick="switchTab('chat', this)">💬 Чат</button>
+        <button class="nav-btn" onclick="switchTab('settings', this)">⚙️ Настройки</button>
+    </nav>
 
     <script>
-        let conversationHistory = [];
+        // ЛОГИКА ВКЛАДОК
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId + 'Tab').classList.add('active');
+            btn.classList.add('active');
+        }
 
+        // ПРЕЖНЯЯ ЛОГИКА (Копирование, отправка и т.д.)
+        let conversationHistory = [];
+        
         document.addEventListener("DOMContentLoaded", () => {
             const savedKey = localStorage.getItem("or_api_key");
             if (savedKey) document.getElementById('apiKey').value = savedKey;
-            resetConversation();
+            
+            const savedChat = localStorage.getItem("or_chat_html");
+            const savedHistory = localStorage.getItem("or_history");
+            if (savedChat) document.getElementById('chatBox').innerHTML = savedChat;
+            if (savedHistory) conversationHistory = JSON.parse(savedHistory);
+            
+            if (conversationHistory.length === 0) resetConversation();
+            addCopyButtonsToAll();
         });
 
-        function saveKey() {
-            localStorage.setItem("or_api_key", document.getElementById('apiKey').value.trim());
-        }
+        function saveKey() { localStorage.setItem("or_api_key", document.getElementById('apiKey').value.trim()); }
 
         function resetConversation() {
-            conversationHistory = [{ role: "system", content: "Ты опытный Python-разработчик и помощник. Пиши рабочий код." }];
+            conversationHistory = [{ role: "system", content: "Ты опытный Python-разработчик." }];
             document.getElementById('chatBox').innerHTML = '<div class="msg ai-msg">Чат очищен.</div>';
-            saveKey();
+            localStorage.removeItem("or_chat_html");
+            localStorage.removeItem("or_history");
         }
 
         async function sendMessage() {
             const apiKey = document.getElementById('apiKey').value.trim();
-            const selectedModel = document.getElementById('modelSelect').value;
-            const input = document.getElementById('userInput');
-            const sendBtn = document.getElementById('sendBtn');
-            const prompt = input.value.trim();
-            
-            if(!apiKey) return alert("Введите API ключ!");
-            if(!prompt) return;
-
-            if(conversationHistory.length === 0) resetConversation();
+            const prompt = document.getElementById('userInput').value.trim();
+            if(!apiKey || !prompt) return;
 
             conversationHistory.push({ role: "user", content: prompt });
             appendMessage(prompt, "user-msg");
-            input.value = "";
-            sendBtn.disabled = true;
+            document.getElementById('userInput').value = "";
 
             const aiDiv = appendMessage("Thinking...", "ai-msg");
-            aiDiv.innerText = ""; // очищаем для стрима
-
-            // Ограничиваем историю последними 6 сообщениями, чтобы не перегружать запрос
-            const recentMessages = conversationHistory.slice(-6);
+            aiDiv.innerText = "";
 
             try {
                 const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${apiKey}`,
-                        "HTTP-Referer": "https://github.com",
-                        "X-Title": "My AI Assistant",
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        model: selectedModel,
-                        messages: recentMessages,
-                        stream: true // Потоковая передача!
-                    })
+                    headers: { "Authorization": `Bearer ${apiKey}`, "HTTP-Referer": "https://github.com", "Content-Type": "application/json" },
+                    body: JSON.stringify({ model: document.getElementById('modelSelect').value, messages: conversationHistory.slice(-6), stream: true })
                 });
-
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error ? errData.error.message : response.status);
-                }
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder("utf-8");
@@ -133,59 +138,40 @@
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-
                     const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split("\n");
-
-                    for (const line of lines) {
+                    chunk.split("\n").forEach(line => {
                         if (line.startsWith("data: ")) {
-                            const jsonStr = line.replace("data: ", "").trim();
-                            if (jsonStr === "[DONE]") break;
-
                             try {
-                                const parsed = JSON.parse(jsonStr);
+                                const parsed = JSON.parse(line.replace("data: ", ""));
                                 const content = parsed.choices[0]?.delta?.content || "";
                                 fullText += content;
-
-                                if (window.marked) {
-                                    aiDiv.innerHTML = marked.parse(fullText);
-                                    if (window.hljs) hljs.highlightAll();
-                                } else {
-                                    aiDiv.innerText = fullText;
-                                }
+                                aiDiv.innerHTML = marked.parse(fullText);
+                                addCopyButtons(aiDiv);
+                                hljs.highlightAll();
                                 scrollToBottom();
-                            } catch (e) {
-                                // пропуск некорректных чанков
-                            }
+                            } catch(e) {}
                         }
-                    }
+                    });
                 }
-
                 conversationHistory.push({ role: "assistant", content: fullText });
-
-            } catch (e) {
-                aiDiv.innerText = "🌐 Ошибка: " + e.message;
-                conversationHistory.pop();
-            } finally {
-                sendBtn.disabled = false;
-                scrollToBottom();
-            }
+                localStorage.setItem("or_chat_html", document.getElementById('chatBox').innerHTML);
+                localStorage.setItem("or_history", JSON.stringify(conversationHistory));
+            } catch (e) { aiDiv.innerText = "Ошибка: " + e.message; }
         }
 
-        function appendMessage(text, className) {
-            const chatBox = document.getElementById('chatBox');
-            const div = document.createElement('div');
-            div.className = `msg ${className}`;
-            div.innerText = text;
-            chatBox.appendChild(div);
-            scrollToBottom();
-            return div;
+        function addCopyButtons(container) {
+            container.querySelectorAll('pre').forEach(pre => {
+                if (pre.querySelector('.copy-btn')) return;
+                const btn = document.createElement('button');
+                btn.className = 'copy-btn';
+                btn.innerText = '📋 Копировать';
+                btn.onclick = () => { navigator.clipboard.writeText(pre.querySelector('code')?.innerText || pre.innerText); btn.innerText = '✅'; setTimeout(()=>btn.innerText='📋', 2000); };
+                pre.appendChild(btn);
+            });
         }
-
-        function scrollToBottom() {
-            const chatBox = document.getElementById('chatBox');
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+        function addCopyButtonsToAll() { addCopyButtons(document.getElementById('chatBox')); }
+        function appendMessage(text, className) { const div = document.createElement('div'); div.className = `msg ${className}`; div.innerText = text; document.getElementById('chatBox').appendChild(div); scrollToBottom(); return div; }
+        function scrollToBottom() { const b = document.getElementById('chatBox'); b.scrollTop = b.scrollHeight; }
     </script>
 </body>
 </html>
