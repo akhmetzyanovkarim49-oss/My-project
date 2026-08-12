@@ -2,60 +2,71 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Mobile Style</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telegram Mobile Custom</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-        body { background: #0e1621; color: #fff; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        header { background: #17212b; padding: 12px 16px; display: flex; align-items: center; justify-content: space-around; border-bottom: 1px solid #0e1621; }
-        .tab-btn { background: none; border: none; color: #7f91a4; font-size: 15px; font-weight: bold; cursor: pointer; padding: 6px 12px; }
+        html, body { height: 100%; width: 100%; background: #0e1621; color: #fff; overflow: hidden; }
+        body { display: flex; flex-direction: column; }
+
+        /* ВЕРХНЯЯ ШАПКА ТАБОВ */
+        header { background: #17212b; height: 50px; min-height: 50px; display: flex; align-items: center; justify-content: space-around; border-bottom: 1px solid #0e1621; z-index: 10; }
+        .tab-btn { background: none; border: none; color: #7f91a4; font-size: 15px; font-weight: bold; cursor: pointer; padding: 10px 20px; }
         .tab-btn.active { color: #64b5ef; border-bottom: 2px solid #64b5ef; }
-        
-        .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+
+        /* ЭКРАНЫ */
+        .screen { display: none; flex-direction: column; flex: 1; height: calc(100% - 50px); overflow: hidden; }
         .screen.active { display: flex; }
-        
-        /* ЭКРАН ЧАТОВ */
-        .input-card { padding: 12px; background: #17212b; border-bottom: 1px solid #0e1621; display: flex; gap: 8px; }
+
+        /* 1. ЭКРАН ЧАТОВ */
+        .input-card { padding: 10px 12px; background: #17212b; border-bottom: 1px solid #0e1621; display: flex; gap: 8px; }
         input.code-input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid #242f3d; background: #0e1621; color: #fff; font-size: 14px; outline: none; }
-        button.add-btn { background: #2b5278; color: #fff; border: none; border-radius: 10px; padding: 10px 14px; font-weight: bold; font-size: 14px; cursor: pointer; }
-        
-        .chat-item { background: #17212b; padding: 14px 16px; border-bottom: 1px solid #0e1621; display: flex; justify-content: space-between; align-items: center; }
+        button.add-btn { background: #2b5278; color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-weight: bold; font-size: 14px; cursor: pointer; }
+
+        #chat-list { flex: 1; overflow-y: auto; }
+        .chat-item { background: #17212b; padding: 12px 16px; border-bottom: 1px solid #0e1621; display: flex; justify-content: space-between; align-items: center; }
         .chat-item:active { background: #202b36; }
         .chat-info { flex: 1; display: flex; align-items: center; gap: 12px; }
-        .chat-avatar { background: #242f3d; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-        .delete-btn { background: #e53935; color: #fff; border: none; border-radius: 8px; width: 32px; height: 32px; font-weight: bold; cursor: pointer; }
-        
-        /* ЭКРАН СООБЩЕНИЙ (TG BUBBLES) */
-        .chat-header { background: #17212b; padding: 10px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #0e1621; }
-        .back-btn { background: none; border: none; color: #64b5ef; font-size: 20px; cursor: pointer; }
-        
-        #messages { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; background: #0e1621; }
-        
-        .msg-bubble { max-width: 80%; padding: 8px 12px; font-size: 14px; line-height: 1.3; word-break: break-word; display: flex; flex-direction: column; }
+        .chat-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: #fff; }
+        .delete-btn { background: transparent; color: #7f91a4; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .delete-btn:active { color: #e53935; background: #242f3d; }
+
+        /* 2. ЭКРАН СООБЩЕНИЙ */
+        .chat-header { background: #17212b; height: 54px; min-height: 54px; padding: 0 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #0e1621; z-index: 5; }
+        .back-btn { background: none; border: none; color: #64b5ef; font-size: 22px; cursor: pointer; padding-right: 5px; }
+
+        /* Область скролла сообщений */
+        #messages-container { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: #0e1621; }
+
+        /* Пузыри сообщений */
+        .msg-bubble { max-width: 80%; padding: 8px 12px; font-size: 14px; line-height: 1.35; word-break: break-word; display: flex; flex-direction: column; }
         .msg-bubble.outgoing { 
             background: #2b5278; color: #fff; align-self: flex-end; 
-            border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom-left-radius: 12px; border-bottom-right-radius: 3px; 
+            border-top-left-radius: 14px; border-top-right-radius: 14px; border-bottom-left-radius: 14px; border-bottom-right-radius: 4px; 
         }
         .msg-bubble.incoming { 
             background: #182533; color: #fff; align-self: flex-start; 
-            border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom-left-radius: 3px; border-bottom-right-radius: 12px; 
+            border-top-left-radius: 14px; border-top-right-radius: 14px; border-bottom-left-radius: 4px; border-bottom-right-radius: 14px; 
         }
-        .msg-time { font-size: 10px; color: rgba(255, 255, 255, 0.5); align-self: flex-end; margin-top: 4px; }
-        
-        .input-area { display: flex; gap: 8px; padding: 10px 12px; background: #17212b; border-top: 1px solid #0e1621; }
-        .msg-input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid #242f3d; background: #0e1621; color: #fff; font-size: 15px; outline: none; }
-        .send-btn { background: #2b5278; color: #fff; border: none; border-radius: 10px; width: 44px; font-size: 16px; cursor: pointer; }
-        
-        /* ЭКРАН ПРОФИЛЯ */
+        .msg-time { font-size: 10px; color: rgba(255, 255, 255, 0.5); align-self: flex-end; margin-top: 3px; }
+
+        /* ВЖИВЛЕННАЯ СТРОКА ВВОДА (ЖЕЛЕЗОБЕТОННО ВНИЗУ) */
+        .input-area { background: #17212b; padding: 8px 12px; display: flex; gap: 8px; border-top: 1px solid #0e1621; min-height: 58px; align-items: center; }
+        .msg-input { flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid #242f3d; background: #0e1621; color: #fff; font-size: 15px; outline: none; }
+        .msg-input:focus { border-color: #5288c1; }
+        .send-btn { background: #2b5278; color: #fff; border: none; border-radius: 12px; width: 46px; height: 42px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .send-btn:active { background: #386797; }
+
+        /* 3. ЭКРАН ПРОФИЛЯ */
         .profile-card { background: #17212b; border-radius: 16px; padding: 24px 16px; text-align: center; margin: 20px; border: 1px solid #242f3d; }
-        .profile-id { font-size: 32px; font-weight: bold; color: #64b5ef; letter-spacing: 2px; font-family: monospace; margin: 12px 0; }
+        .profile-avatar { background: #2b5278; width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px; }
+        .profile-id { font-size: 32px; font-weight: bold; color: #64b5ef; letter-spacing: 2px; font-family: monospace; margin: 10px 0; }
     </style>
 </head>
 <body>
-    <header>
+    <header id="main-header">
         <button class="tab-btn active" onclick="switchTab('chats')">💬 Чаты</button>
         <button class="tab-btn" onclick="switchTab('profile')">👤 Профиль</button>
     </header>
@@ -66,21 +77,24 @@
             <input type="number" id="new-code-input" class="code-input" placeholder="Введите 6 цифр ID...">
             <button class="add-btn" onclick="addNewChat()">+ Чат</button>
         </div>
-        <div id="chat-list" style="flex: 1; overflow-y: auto;"></div>
+        <div id="chat-list"></div>
     </div>
 
     <!-- 2. ВКЛАДКА ОКНА СООБЩЕНИЙ -->
     <div id="messages-screen" class="screen">
         <div class="chat-header">
             <button class="back-btn" onclick="switchTab('chats')">◄</button>
+            <div id="header-avatar-mini" class="chat-avatar" style="width: 36px; height: 36px; font-size: 14px;">💬</div>
             <div>
                 <div id="active-chat-title" style="font-weight: bold; font-size: 15px;">Чат</div>
                 <div id="active-chat-sub" style="color: #64b5ef; font-size: 11px;">в сети</div>
             </div>
         </div>
-        <div id="messages"></div>
+
+        <div id="messages-container"></div>
+
         <div class="input-area">
-            <input type="text" id="msg-input" class="msg-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter') sendMsg()">
+            <input type="text" id="msg-input" class="msg-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendMsg()">
             <button class="send-btn" onclick="sendMsg()">➔</button>
         </div>
     </div>
@@ -88,7 +102,7 @@
     <!-- 3. ВКЛАДКА ПРОФИЛЯ -->
     <div id="profile-screen" class="screen">
         <div class="profile-card">
-            <div style="font-size: 50px; background: #242f3d; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;">👤</div>
+            <div class="profile-avatar">👤</div>
             <div style="color: #7f91a4; font-size: 13px;">ВАШ ПОСТОЯННЫЙ ID</div>
             <div id="my-profile-id" class="profile-id">------</div>
             <div style="color: #7f91a4; font-size: 12px;">Передайте этот ID другу или введите его на ПК для связи.</div>
@@ -109,6 +123,8 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        const AVATAR_COLORS = ["#2b5278", "#803c73", "#286847", "#855823", "#386588", "#782b4a"];
+
         let myUserId = localStorage.getItem('my_messenger_id');
         if (!myUserId || myUserId.length !== 6) {
             myUserId = Math.floor(100000 + Math.random() * 900000).toString();
@@ -120,17 +136,25 @@
         let currentRoom = null;
         let activeListener = null;
 
+        function getAvatarColor(code) {
+            return AVATAR_COLORS[parseInt(code) % AVATAR_COLORS.length] || "#2b5278";
+        }
+
         function renderChatList() {
             const list = document.getElementById('chat-list');
             list.innerHTML = '';
             for (let code in savedChats) {
+                const name = savedChats[code];
+                const firstLetter = name ? name[0].toUpperCase() : '💬';
+                const color = getAvatarColor(code);
+
                 const div = document.createElement('div');
                 div.className = 'chat-item';
                 div.innerHTML = `
                     <div class="chat-info" onclick="openChat('${code}')">
-                        <div class="chat-avatar">💬</div>
+                        <div class="chat-avatar" style="background-color: ${color}">${firstLetter}</div>
                         <div>
-                            <div style="font-weight: bold; font-size: 15px;">${savedChats[code]}</div>
+                            <div style="font-weight: bold; font-size: 15px;">${name}</div>
                             <div style="color:#7f91a4; font-size: 12px;">ID: ${code}</div>
                         </div>
                     </div>
@@ -143,7 +167,7 @@
         function addNewChat() {
             const code = document.getElementById('new-code-input').value.trim();
             if (code.length === 6) {
-                savedChats[code] = "Собеседник [" + code + "]";
+                savedChats[code] = "Чат " + code;
                 localStorage.setItem('saved_chats', JSON.stringify(savedChats));
                 document.getElementById('new-code-input').value = '';
                 renderChatList();
@@ -164,9 +188,15 @@
 
         function openChat(code) {
             currentRoom = code;
-            document.getElementById('active-chat-title').innerText = savedChats[code];
+            const name = savedChats[code];
+            document.getElementById('active-chat-title').innerText = name;
             document.getElementById('active-chat-sub').innerText = "ID: " + code + " • в сети";
-            document.getElementById('messages').innerHTML = '';
+            
+            const miniAv = document.getElementById('header-avatar-mini');
+            miniAv.innerText = name ? name[0].toUpperCase() : '💬';
+            miniAv.style.backgroundColor = getAvatarColor(code);
+
+            document.getElementById('messages-container').innerHTML = '';
             switchTab('messages');
 
             if (activeListener) activeListener.off();
@@ -174,9 +204,9 @@
             activeListener = db.ref('chats/' + currentRoom);
             activeListener.on('child_added', (snapshot) => {
                 const data = snapshot.val();
-                const type = data.sender === myUserId ? 'outgoing' : 'incoming';
+                const isMy = data.sender === myUserId;
                 const timeStr = data.time ? new Date(data.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-                appendMessage(data.text, timeStr, type);
+                appendMessage(data.text, timeStr, isMy);
             });
         }
 
@@ -189,13 +219,16 @@
             }
         }
 
-        function appendMessage(text, timeStr, type) {
-            const container = document.getElementById('messages');
+        function appendMessage(text, timeStr, isMy) {
+            const container = document.getElementById('messages-container');
             const msgDiv = document.createElement('div');
+            const type = isMy ? 'outgoing' : 'incoming';
+            const statusText = isMy ? `${timeStr}  ✓` : timeStr;
+
             msgDiv.className = `msg-bubble ${type}`;
             msgDiv.innerHTML = `
                 <div>${text}</div>
-                <div class="msg-time">${timeStr}</div>
+                <div class="msg-time">${statusText}</div>
             `;
             container.appendChild(msgDiv);
             container.scrollTop = container.scrollHeight;
@@ -216,12 +249,18 @@
         function switchTab(tab) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            const mainHeader = document.getElementById('main-header');
+
             if (tab === 'chats') {
+                mainHeader.style.display = 'flex';
                 document.getElementById('chats-screen').classList.add('active');
                 renderChatList();
             } else if (tab === 'profile') {
+                mainHeader.style.display = 'flex';
                 document.getElementById('profile-screen').classList.add('active');
             } else if (tab === 'messages') {
+                mainHeader.style.display = 'none'; // Скрываем верхние табы, когда открыт конкретный чат
                 document.getElementById('messages-screen').classList.add('active');
             }
         }
