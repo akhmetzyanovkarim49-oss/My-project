@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P Messenger Телефон</title>
+    <title>P2P Messenger Мобильный</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background: #0f0f10; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; }
-        .card { background: #1a1a1e; border: 1px solid #2a2a2e; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 15px; }
-        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #3a3a3c; background: #2c2c2e; color: #fff; font-size: 18px; text-align: center; margin-bottom: 12px; outline: none; }
+        .card { background: #1a1a1e; border: 1px solid #2a2a2e; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px; }
+        .my-code { font-size: 38px; font-weight: bold; color: #0084ff; letter-spacing: 4px; font-family: monospace; margin-top: 5px; }
+        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #3a3a3c; background: #2c2c2e; color: #fff; font-size: 22px; text-align: center; margin-bottom: 12px; outline: none; letter-spacing: 2px; }
         button { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #0084ff; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; }
         #chat-screen { display: none; flex-direction: column; height: 100%; }
         #messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; border: 1px solid #2a2a2e; border-radius: 12px; }
@@ -21,82 +24,71 @@
 <body>
     <div id="main-screen">
         <div class="card">
-            <h3>Подключение к ПК</h3>
-            <!-- Введи локальный IP ПК (например, 192.168.1.50) или внешний адрес -->
-            <input type="text" id="pc-ip" placeholder="IP хоста (например 192.168.1.50:8080)">
-            <input type="number" id="friend-code" placeholder="Введите 6 цифр с ПК" oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);">
-            <button onclick="startChat()">Войти в чат</button>
+            <div style="color: #8e8e93; font-size: 13px;">ТВОЙ КОД ДЛЯ ПОДКЛЮЧЕНИЯ</div>
+            <div id="my-code" class="my-code">------</div>
+        </div>
+        <div class="card">
+            <div style="color: #8e8e93; font-size: 13px; margin-bottom: 10px;">ВВЕДИ 6 ЦИФР С ПК ИЛИ ДРУГА</div>
+            <input type="number" id="friend-code" placeholder="000000" oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);">
+            <button onclick="joinRoom()">Войти в чат</button>
         </div>
     </div>
 
     <div id="chat-screen">
-        <h3>P2P Чат (Телефон)</h3>
+        <h3>Чат: [<span id="connected-id">------</span>]</h3>
         <div id="messages"></div>
         <div class="input-area">
-            <input type="text" id="msg-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter') sendMsg()">
+            <input type="text" id="msg-input" placeholder="Сообщение..." style="font-size: 16px; text-align: left;" onkeydown="if(event.key==='Enter') sendMsg()">
             <button onclick="sendMsg()" style="width: 60px;">➔</button>
         </div>
     </div>
 
     <script>
-        const myId = 'phone_' + Math.floor(Math.random() * 1000);
-        let pcUrl = localStorage.getItem('pc_url') || '';
-        let activeCode = '';
-        let lastMsgId = -1;
+        const firebaseConfig = {
+            apiKey: "AIzaSyAE06gMQSdQsHO3wqVDhRZM20FQsXwR7Dg",
+            authDomain: "mesanger-1157b.firebaseapp.com",
+            projectId: "mesanger-1157b",
+            storageBucket: "mesanger-1157b.firebasestorage.app",
+            messagingSenderId: "403397305101",
+            appId: "1:403397305101:web:ea7e5d5dd076af9e754644",
+            measurementId: "G-7X0C3B7XH3",
+            databaseURL: "https://mesanger-1157b-default-rtdb.firebaseio.com"
+        };
 
-        if (pcUrl) document.getElementById('pc-ip').value = pcUrl.replace('http://', '');
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        function startChat() {
-            let ip = document.getElementById('pc-ip').value.trim();
-            activeCode = document.getElementById('friend-code').value.trim();
+        const myUserId = 'phone_' + Math.floor(Math.random() * 10000);
+        const roomCode = Math.floor(100000 + Math.random() * 900000).toString();
+        document.getElementById('my-code').innerText = roomCode;
 
-            if (!ip) return alert("Укажи IP своего ПК!");
-            if (activeCode.length !== 6) return alert("Нужно ввести 6 цифр!");
+        let activeRoom = null;
 
-            if (!ip.startsWith('http')) ip = 'http://' + ip;
-            pcUrl = ip;
+        function joinRoom() {
+            const inputCode = document.getElementById('friend-code').value.trim();
+            activeRoom = inputCode.length === 6 ? inputCode : roomCode;
 
-            localStorage.setItem('pc_url', pcUrl);
-
+            document.getElementById('connected-id').innerText = activeRoom;
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
 
-            // Начинаем спать и ждать сообщения от ПК (без расхода батареи)
-            listenLoop();
+            db.ref('chats/' + activeRoom).on('child_added', (snapshot) => {
+                const data = snapshot.val();
+                const type = data.sender === myUserId ? 'outgoing' : 'incoming';
+                appendMessage(data.text, type);
+            });
         }
 
-        async function listenLoop() {
-            while (true) {
-                try {
-                    const res = await fetch(`${pcUrl}/api/wait`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ code: activeCode, last_id: lastMsgId })
-                    });
-                    const data = await res.json();
-                    if (data.status === 'ok' && data.msgs) {
-                        data.msgs.forEach(m => {
-                            const type = m.sender === myId ? 'outgoing' : 'incoming';
-                            appendMessage(m.text, type);
-                            lastMsgId = m.id;
-                        });
-                    }
-                } catch (e) {
-                    await new Promise(r => setTimeout(r, 2000));
-                }
-            }
-        }
-
-        async function sendMsg() {
+        function sendMsg() {
             const input = document.getElementById('msg-input');
             const text = input.value.trim();
-            if (text !== '') {
-                input.value = '';
-                await fetch(`${pcUrl}/api/send`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: activeCode, sender: myId, text: text })
+            if (text !== '' && activeRoom) {
+                db.ref('chats/' + activeRoom).push({
+                    sender: myUserId,
+                    text: text,
+                    time: Date.now()
                 });
+                input.value = '';
             }
         }
 
