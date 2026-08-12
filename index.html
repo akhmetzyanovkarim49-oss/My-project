@@ -2,176 +2,78 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Assistant Pro</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-
+    <title>P2P Messenger</title>
     <style>
-        :root { --bg-color: #0d0d0d; --panel-bg: #1a1a1a; --chat-bg: #121212; --text-color: #e0e0e0; --accent: #007bff; --border: #333; }
-        
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-
-        /* ЭКРАНЫ */
-        .tab-content { display: none; flex: 1; flex-direction: column; padding: 10px; overflow: hidden; }
-        .tab-content.active { display: flex; }
-
-        /* НАСТРОЙКИ */
-        .settings-panel { padding: 10px; }
-        label { font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; display: block; }
-        input, select { background: #000; color: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 8px; width: 100%; margin-bottom: 15px; }
-
-        /* ЧАТ */
-        .chat-box { flex: 1; overflow-y: auto; background: var(--chat-bg); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border); }
-        .msg { padding: 10px 14px; border-radius: 10px; max-width: 92%; font-size: 14px; line-height: 1.6; word-wrap: break-word; position: relative; }
-        .user-msg { background: var(--accent); align-self: flex-end; color: white; }
-        .ai-msg { background: var(--panel-bg); align-self: flex-start; border: 1px solid var(--border); }
-        
-        .input-box { display: flex; gap: 8px; padding-bottom: 10px; }
-        input#userInput { margin-bottom: 0; flex: 1; }
-
-        /* НАВИГАЦИЯ */
-        .bottom-nav { display: flex; background: #111; border-top: 1px solid var(--border); height: 60px; }
-        .nav-btn { flex: 1; background: none; border: none; color: #888; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-        .nav-btn.active { color: var(--accent); }
-
-        /* КОД */
-        pre { background: #000; padding: 12px; border-radius: 6px; margin: 8px 0; border: 1px solid var(--border); position: relative; }
-        .copy-btn { position: absolute; top: 5px; right: 5px; background: #333; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-size: 9px; }
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; height: 100vh; margin: 0; padding: 10px; }
+        #setup { display: flex; flex-direction: column; gap: 10px; }
+        #chat { display: none; flex-direction: column; height: 100%; }
+        #messages { flex: 1; overflow-y: auto; border: 1px solid #333; padding: 10px; margin-bottom: 10px; border-radius: 10px; }
+        .msg { padding: 8px; margin: 5px; background: #333; border-radius: 10px; width: fit-content; }
+        .my-msg { background: #0084ff; align-self: flex-end; margin-left: auto; }
+        textarea { height: 80px; width: 100%; }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН ЧАТА -->
-    <div id="chatTab" class="tab-content active">
-        <div class="chat-box" id="chatBox">
-            <div class="msg ai-msg">Привет! Готов к работе.</div>
-        </div>
-        <div class="input-box">
-            <input type="text" id="userInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
-            <button onclick="sendMessage()" style="background:var(--accent); color:white; border:none; padding:0 15px; border-radius:8px;">➤</button>
-        </div>
+    <!-- Экран настройки соединения -->
+    <div id="setup">
+        <h3>1. Скопируй этот код и отправь на ПК:</h3>
+        <textarea id="local-sdp" readonly></textarea>
+        
+        <h3>2. Вставь код ответа с ПК сюда:</h3>
+        <textarea id="remote-sdp" placeholder="Вставь сюда ответ с ПК"></textarea>
+        <button onclick="connect()">Соединиться</button>
     </div>
 
-    <!-- ЭКРАН НАСТРОЕК -->
-    <div id="settingsTab" class="tab-content">
-        <div class="settings-panel">
-            <label>API КЛЮЧ:</label>
-            <input type="password" id="apiKey" placeholder="sk-or-v1-..." oninput="saveKey()">
-            
-            <label>МОДЕЛЬ:</label>
-            <select id="modelSelect">
-                <option value="google/gemini-2.0-flash-lite-preview-02-05:free">⚡ Gemini 2.0 Flash</option>
-                <option value="openai/gpt-oss-20b:free">🧠 GPT-OSS 20B</option>
-                <option value="qwen/qwen-2.5-coder-32b-instruct:free">💻 Qwen 2.5 Coder 32B</option>
-            </select>
-
-            <button onclick="resetConversation()" style="width: 100%; background: #8b0000; border:none; color:white; padding:12px; border-radius:8px;">🗑️ Сбросить историю</button>
+    <!-- Экран чата -->
+    <div id="chat">
+        <div id="messages"></div>
+        <div style="display: flex;">
+            <input type="text" id="msg-input" style="flex: 1;" placeholder="Сообщение...">
+            <button onclick="sendMsg()">></button>
         </div>
     </div>
-
-    <!-- НИЖНЯЯ ПАНЕЛЬ -->
-    <nav class="bottom-nav">
-        <button class="nav-btn active" onclick="switchTab('chat', this)">💬 Чат</button>
-        <button class="nav-btn" onclick="switchTab('settings', this)">⚙️ Настройки</button>
-    </nav>
 
     <script>
-        // ЛОГИКА ВКЛАДОК
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId + 'Tab').classList.add('active');
-            btn.classList.add('active');
-        }
+        const pc = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        });
+        let dc = pc.createDataChannel("chat");
 
-        // ПРЕЖНЯЯ ЛОГИКА (Копирование, отправка и т.д.)
-        let conversationHistory = [];
-        
-        document.addEventListener("DOMContentLoaded", () => {
-            const savedKey = localStorage.getItem("or_api_key");
-            if (savedKey) document.getElementById('apiKey').value = savedKey;
-            
-            const savedChat = localStorage.getItem("or_chat_html");
-            const savedHistory = localStorage.getItem("or_history");
-            if (savedChat) document.getElementById('chatBox').innerHTML = savedChat;
-            if (savedHistory) conversationHistory = JSON.parse(savedHistory);
-            
-            if (conversationHistory.length === 0) resetConversation();
-            addCopyButtonsToAll();
+        // 1. Создаем Offer (код для передачи на ПК)
+        pc.createOffer().then(offer => {
+            pc.setLocalDescription(offer);
+            document.getElementById('local-sdp').value = JSON.stringify(offer);
         });
 
-        function saveKey() { localStorage.setItem("or_api_key", document.getElementById('apiKey').value.trim()); }
+        // 2. Обработка входящих данных
+        dc.onopen = () => {
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('chat').style.display = 'flex';
+        };
+        dc.onmessage = (e) => appendMessage(e.data, false);
 
-        function resetConversation() {
-            conversationHistory = [{ role: "system", content: "Ты опытный Python-разработчик." }];
-            document.getElementById('chatBox').innerHTML = '<div class="msg ai-msg">Чат очищен.</div>';
-            localStorage.removeItem("or_chat_html");
-            localStorage.removeItem("or_history");
+        // 3. Подключение (вставка кода с ПК)
+        function connect() {
+            const answer = JSON.parse(document.getElementById('remote-sdp').value);
+            pc.setRemoteDescription(new RTCSessionDescription(answer));
         }
 
-        async function sendMessage() {
-            const apiKey = document.getElementById('apiKey').value.trim();
-            const prompt = document.getElementById('userInput').value.trim();
-            if(!apiKey || !prompt) return;
-
-            conversationHistory.push({ role: "user", content: prompt });
-            appendMessage(prompt, "user-msg");
-            document.getElementById('userInput').value = "";
-
-            const aiDiv = appendMessage("Thinking...", "ai-msg");
-            aiDiv.innerText = "";
-
-            try {
-                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${apiKey}`, "HTTP-Referer": "https://github.com", "Content-Type": "application/json" },
-                    body: JSON.stringify({ model: document.getElementById('modelSelect').value, messages: conversationHistory.slice(-6), stream: true })
-                });
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder("utf-8");
-                let fullText = "";
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    const chunk = decoder.decode(value, { stream: true });
-                    chunk.split("\n").forEach(line => {
-                        if (line.startsWith("data: ")) {
-                            try {
-                                const parsed = JSON.parse(line.replace("data: ", ""));
-                                const content = parsed.choices[0]?.delta?.content || "";
-                                fullText += content;
-                                aiDiv.innerHTML = marked.parse(fullText);
-                                addCopyButtons(aiDiv);
-                                hljs.highlightAll();
-                                scrollToBottom();
-                            } catch(e) {}
-                        }
-                    });
-                }
-                conversationHistory.push({ role: "assistant", content: fullText });
-                localStorage.setItem("or_chat_html", document.getElementById('chatBox').innerHTML);
-                localStorage.setItem("or_history", JSON.stringify(conversationHistory));
-            } catch (e) { aiDiv.innerText = "Ошибка: " + e.message; }
+        // 4. Отправка сообщений
+        function sendMsg() {
+            const input = document.getElementById('msg-input');
+            dc.send(input.value);
+            appendMessage(input.value, true);
+            input.value = '';
         }
 
-        function addCopyButtons(container) {
-            container.querySelectorAll('pre').forEach(pre => {
-                if (pre.querySelector('.copy-btn')) return;
-                const btn = document.createElement('button');
-                btn.className = 'copy-btn';
-                btn.innerText = '📋 Копировать';
-                btn.onclick = () => { navigator.clipboard.writeText(pre.querySelector('code')?.innerText || pre.innerText); btn.innerText = '✅'; setTimeout(()=>btn.innerText='📋', 2000); };
-                pre.appendChild(btn);
-            });
+        function appendMessage(text, isMe) {
+            const div = document.createElement('div');
+            div.className = 'msg ' + (isMe ? 'my-msg' : '');
+            div.innerText = text;
+            document.getElementById('messages').appendChild(div);
         }
-        function addCopyButtonsToAll() { addCopyButtons(document.getElementById('chatBox')); }
-        function appendMessage(text, className) { const div = document.createElement('div'); div.className = `msg ${className}`; div.innerText = text; document.getElementById('chatBox').appendChild(div); scrollToBottom(); return div; }
-        function scrollToBottom() { const b = document.getElementById('chatBox'); b.scrollTop = b.scrollHeight; }
     </script>
 </body>
 </html>
+
