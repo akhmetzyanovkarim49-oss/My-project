@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Встроенный P2P Мессенджер</title>
+    <title>P2P Messenger Телефон</title>
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        * { box-sizing: border-box; font-family: -apple-system, sans-serif; }
         body { background: #0f0f10; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; }
         .card { background: #1a1a1e; border: 1px solid #2a2a2e; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 15px; }
-        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #3a3a3c; background: #2c2c2e; color: #fff; font-size: 16px; margin-bottom: 12px; outline: none; }
+        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #3a3a3c; background: #2c2c2e; color: #fff; font-size: 18px; text-align: center; margin-bottom: 12px; outline: none; }
         button { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #0084ff; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; }
         #chat-screen { display: none; flex-direction: column; height: 100%; }
         #messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; border: 1px solid #2a2a2e; border-radius: 12px; }
@@ -16,22 +16,21 @@
         .incoming { background: #2c2c2e; align-self: flex-start; }
         .outgoing { background: #0084ff; align-self: flex-end; }
         .input-area { display: flex; gap: 10px; margin-top: 15px; }
-        .status { font-size: 12px; color: #30d158; margin-bottom: 8px; }
     </style>
 </head>
 <body>
     <div id="main-screen">
         <div class="card">
-            <div class="status">● Встроенный сервер активен</div>
-            <h3>Настройка связи</h3>
-            <input type="text" id="my-port" placeholder="Порт этого устройства (например 8080)">
-            <input type="text" id="target-peer" placeholder="Адрес друга (например http://192.168.1.50:8081)">
-            <button onclick="saveAndStart()">Запустить Мессенджер</button>
+            <h3>Подключение к ПК</h3>
+            <!-- Введи локальный IP ПК (например, 192.168.1.50) или внешний адрес -->
+            <input type="text" id="pc-ip" placeholder="IP хоста (например 192.168.1.50:8080)">
+            <input type="number" id="friend-code" placeholder="Введите 6 цифр с ПК" oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);">
+            <button onclick="startChat()">Войти в чат</button>
         </div>
     </div>
 
     <div id="chat-screen">
-        <h3>P2P Мессенджер</h3>
+        <h3>P2P Чат (Телефон)</h3>
         <div id="messages"></div>
         <div class="input-area">
             <input type="text" id="msg-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter') sendMsg()">
@@ -40,45 +39,44 @@
     </div>
 
     <script>
-        const myDeviceId = 'dev_' + Math.floor(Math.random() * 10000);
-        let myPort = localStorage.getItem('my_port') || '8080';
-        let targetPeer = localStorage.getItem('target_peer') || '';
+        const myId = 'phone_' + Math.floor(Math.random() * 1000);
+        let pcUrl = localStorage.getItem('pc_url') || '';
+        let activeCode = '';
         let lastMsgId = -1;
 
-        if (myPort) document.getElementById('my-port').value = myPort;
-        if (targetPeer) document.getElementById('target-peer').value = targetPeer;
+        if (pcUrl) document.getElementById('pc-ip').value = pcUrl.replace('http://', '');
 
-        function saveAndStart() {
-            myPort = document.getElementById('my-port').value.trim() || '8080';
-            targetPeer = document.getElementById('target-peer').value.trim();
+        function startChat() {
+            let ip = document.getElementById('pc-ip').value.trim();
+            activeCode = document.getElementById('friend-code').value.trim();
 
-            if (targetPeer && !targetPeer.startsWith('http')) {
-                targetPeer = 'http://' + targetPeer;
-            }
+            if (!ip) return alert("Укажи IP своего ПК!");
+            if (activeCode.length !== 6) return alert("Нужно ввести 6 цифр!");
 
-            localStorage.setItem('my_port', myPort);
-            localStorage.setItem('target_peer', targetPeer);
+            if (!ip.startsWith('http')) ip = 'http://' + ip;
+            pcUrl = ip;
+
+            localStorage.setItem('pc_url', pcUrl);
 
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
 
-            // Начинаем слушать свой встроенный сервер без нагрузки на батарею
-            listenSelfServer();
+            // Начинаем спать и ждать сообщения от ПК (без расхода батареи)
+            listenLoop();
         }
 
-        async function listenSelfServer() {
-            const selfUrl = `http://localhost:${myPort}`;
+        async function listenLoop() {
             while (true) {
                 try {
-                    const res = await fetch(`${selfUrl}/api/wait`, {
+                    const res = await fetch(`${pcUrl}/api/wait`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ last_id: lastMsgId })
+                        body: JSON.stringify({ code: activeCode, last_id: lastMsgId })
                     });
                     const data = await res.json();
                     if (data.status === 'ok' && data.msgs) {
                         data.msgs.forEach(m => {
-                            const type = m.sender === myDeviceId ? 'outgoing' : 'incoming';
+                            const type = m.sender === myId ? 'outgoing' : 'incoming';
                             appendMessage(m.text, type);
                             lastMsgId = m.id;
                         });
@@ -92,18 +90,13 @@
         async function sendMsg() {
             const input = document.getElementById('msg-input');
             const text = input.value.trim();
-            if (text !== '' && targetPeer) {
+            if (text !== '') {
                 input.value = '';
-                try {
-                    // Прямой POST-запрос на встроенный сервер у друга
-                    await fetch(`${targetPeer}/api/send`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ sender: myDeviceId, text: text })
-                    });
-                } catch(e) {
-                    alert("Ошибка доставки! Проверь адрес друга.");
-                }
+                await fetch(`${pcUrl}/api/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: activeCode, sender: myId, text: text })
+                });
             }
         }
 
