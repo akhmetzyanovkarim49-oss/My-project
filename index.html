@@ -4,140 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P2P Messenger</title>
-    <!-- Подключаем PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background: #0f0f10; color: #ffffff; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; }
-        
-        /* Главный контейнер */
-        .container { flex: 1; display: flex; flex-direction: column; padding: 20px; max-width: 500px; margin: 0 auto; width: 100%; }
-
-        /* Карточка профиля */
-        .profile-card { background: #1a1a1e; border: 1px solid #2a2a2e; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        .avatar { width: 64px; height: 64px; background: linear-gradient(135deg, #0084ff, #00c6ff); border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; }
-        .profile-title { font-size: 14px; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-        .my-code { font-size: 36px; font-weight: 800; color: #0084ff; letter-spacing: 4px; font-family: monospace; }
-
-        /* Блок поиска */
-        .search-card { background: #1a1a1e; border: 1px solid #2a2a2e; border-radius: 16px; padding: 20px; text-align: center; }
-        .search-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #e5e5ea; }
-        .code-input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #3a3a3c; background: #2c2c2e; color: #fff; font-size: 20px; text-align: center; font-family: monospace; letter-spacing: 2px; outline: none; margin-bottom: 12px; }
-        .code-input:focus { border-color: #0084ff; }
-        .btn-search { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #0084ff; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        .btn-search:active { background: #0066cc; }
-
-        /* Экран чата (скрыт по умолчанию) */
+        * { box-sizing: border-box; font-family: sans-serif; }
+        body { background: #0f0f10; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; }
+        .card { background: #1a1a1e; border: 1px solid #2a2a2e; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px; }
+        .my-code { font-size: 36px; font-weight: bold; color: #0084ff; letter-spacing: 4px; font-family: monospace; }
+        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #3a3a3c; background: #2c2c2e; color: #fff; font-size: 20px; text-align: center; margin-bottom: 12px; outline: none; }
+        button { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #0084ff; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; }
         #chat-screen { display: none; flex-direction: column; height: 100%; }
-        .chat-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 1px solid #2a2a2e; margin-bottom: 15px; }
-        .chat-title { font-size: 18px; font-weight: 600; }
-        #messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; }
+        #messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; border: 1px solid #2a2a2e; border-radius: 12px; }
         .msg { padding: 10px 14px; border-radius: 14px; font-size: 15px; max-width: 80%; word-break: break-word; }
-        .incoming { background: #2c2c2e; align-self: flex-start; border-bottom-left-radius: 4px; }
-        .outgoing { background: #0084ff; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .incoming { background: #2c2c2e; align-self: flex-start; }
+        .outgoing { background: #0084ff; align-self: flex-end; }
         .input-area { display: flex; gap: 10px; margin-top: 15px; }
-        .msg-input { flex: 1; padding: 12px 16px; border-radius: 20px; border: 1px solid #3a3a3c; background: #2c2c2e; color: #fff; font-size: 15px; outline: none; }
-        .btn-send { width: 44px; height: 44px; border-radius: 50%; border: none; background: #0084ff; color: #fff; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
-
-    <div class="container">
-        <!-- Главный экран: Профиль и Поиск -->
-        <div id="main-screen">
-            <!-- Профиль устройства -->
-            <div class="profile-card">
-                <div class="avatar">📱</div>
-                <div class="profile-title">Мой ID Профиля</div>
-                <div id="my-code" class="my-code">------</div>
-            </div>
-
-            <!-- Поиск собеседника -->
-            <div class="search-card">
-                <div class="search-title">Найти другое устройство</div>
-                <input type="number" id="friend-code" class="code-input" placeholder="Введите 6 цифр..." oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);">
-                <button class="btn-search" onclick="searchDevice()">Найти и Подключиться</button>
-            </div>
+    <div id="main-screen">
+        <div class="card">
+            <div style="color: #8e8e93; font-size: 14px;">МОЙ ID (ТЕЛЕФОН)</div>
+            <div id="my-code" class="my-code">------</div>
         </div>
+        <div class="card">
+            <input type="number" id="friend-code" placeholder="Введите 6 цифр" oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);">
+            <button onclick="searchDevice()">Найти и Подключиться</button>
+        </div>
+    </div>
 
-        <!-- Экран активного чата -->
-        <div id="chat-screen">
-            <div class="chat-header">
-                <div class="chat-title">P2P Чат [<span id="connected-id">------</span>]</div>
-            </div>
-
-            <div id="messages"></div>
-
-            <div class="input-area">
-                <input type="text" id="msg-input" class="msg-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter') sendMsg()">
-                <button class="btn-send" onclick="sendMsg()">➔</button>
-            </div>
+    <div id="chat-screen">
+        <h3>Чат с [<span id="connected-id">------</span>]</h3>
+        <div id="messages"></div>
+        <div class="input-area">
+            <input type="text" id="msg-input" placeholder="Сообщение..." style="text-align: left;" onkeydown="if(event.key==='Enter') sendMsg()">
+            <button onclick="sendMsg()" style="width: 60px;">➔</button>
         </div>
     </div>
 
     <script>
-        // 1. Генерируем уникальный 6-значный ID профиля
         const myId = Math.floor(100000 + Math.random() * 900000).toString();
         document.getElementById('my-code').innerText = myId;
 
-        // 2. Инициализируем PeerJS
-        const peer = new Peer(myId);
+        // Включены STUN-серверы Google для пробития NAT
+        const peer = new Peer(myId, {
+            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] }
+        });
         let conn = null;
 
-        // Принимаем входящее подключение (когда кто-то нашел нас)
         peer.on('connection', (c) => {
             conn = c;
             setupChat(c.peer);
         });
 
-        // Функция поиска устройства по коду
         function searchDevice() {
-            const targetCode = document.getElementById('friend-code').value;
-            if (targetCode.length !== 6) {
-                alert("Код должен состоять строго из 6 цифр!");
-                return;
-            }
-            if (targetCode === myId) {
-                alert("Нельзя подключиться к самому себе!");
-                return;
-            }
-
-            // Подключаемся к найденному ID
-            conn = peer.connect(targetCode);
-            setupChat(targetCode);
+            const code = document.getElementById('friend-code').value;
+            if (code.length !== 6) return alert("Нужно 6 цифр!");
+            conn = peer.connect(code);
+            setupChat(code);
         }
 
-        // Настройка обработки сообщений и переключение экрана
         function setupChat(peerId) {
             document.getElementById('connected-id').innerText = peerId;
-
             conn.on('open', () => {
                 document.getElementById('main-screen').style.display = 'none';
                 document.getElementById('chat-screen').style.display = 'flex';
             });
-
-            conn.on('data', (data) => {
-                appendMessage(data, 'incoming');
-            });
-
-            conn.on('close', () => {
-                alert("Собеседник отключился.");
-                location.reload();
-            });
+            conn.on('data', (data) => appendMessage(data, 'incoming'));
         }
 
-        // Отправка сообщений
         function sendMsg() {
             const input = document.getElementById('msg-input');
-            const text = input.value.trim();
-            if (text !== '' && conn) {
-                conn.send(text);
-                appendMessage(text, 'outgoing');
+            if (input.value.trim() !== '' && conn) {
+                conn.send(input.value.trim());
+                appendMessage(input.value.trim(), 'outgoing');
                 input.value = '';
             }
         }
 
-        // Отрисовка сообщения в чате
         function appendMessage(text, type) {
             const msgDiv = document.createElement('div');
             msgDiv.className = `msg ${type}`;
