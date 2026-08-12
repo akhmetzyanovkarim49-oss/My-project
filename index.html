@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Discord Mobile Pro</title>
+    <title>Messenger WebRTC Calls</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -18,10 +18,8 @@
         .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; gap: 10px; }
         .screen.active { display: flex; }
 
-        /* КАРТОЧКИ-ПУЗЫРИ */
         .bubble-card { background: #2b2d31; border-radius: 16px; border: 1px solid #1f2023; padding: 12px; display: flex; flex-direction: column; }
 
-        /* СПИСОК ЧАТОВ */
         .input-card { display: flex; gap: 8px; }
         input.code-input { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #1e1f22; background: #1e1f22; color: #fff; outline: none; }
         button.add-btn { background: #5865f2; color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-weight: bold; }
@@ -32,9 +30,9 @@
         .chat-info { flex: 1; display: flex; align-items: center; gap: 10px; }
         .chat-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; }
 
-        /* ОКТНО ЧАТА */
-        .chat-header { background: #2b2d31; height: 48px; border-radius: 14px; padding: 0 14px; display: flex; align-items: center; gap: 10px; border: 1px solid #1f2023; }
+        .chat-header { background: #2b2d31; height: 52px; border-radius: 14px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #1f2023; }
         .back-btn { background: none; border: none; color: #5865f2; font-size: 20px; }
+        .call-btn { background: #23a55a; color: #fff; border: none; border-radius: 10px; padding: 8px 14px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
         #messages-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .discord-msg { display: flex; gap: 10px; font-size: 13px; }
@@ -44,20 +42,24 @@
         .msg-meta.other { color: #57f287; }
         .msg-timestamp { font-size: 9px; color: #949ba4; font-weight: normal; margin-left: 6px; }
 
-        /* ПУЗЫРЬ ВВОДА */
         .input-area { background: #2b2d31; padding: 8px 12px; border-radius: 16px; display: flex; gap: 8px; border: 1px solid #1f2023; align-items: center; }
         .msg-input { flex: 1; padding: 10px; border-radius: 10px; border: none; background: #1e1f22; color: #fff; outline: none; }
         .send-btn { background: #5865f2; color: #fff; border: none; border-radius: 10px; width: 42px; height: 38px; font-size: 16px; }
 
-        /* ПРОФИЛЬ МОДАЛКА И КАРТОЧКА */
         .profile-card { background: #2b2d31; border-radius: 16px; padding: 20px; text-align: center; border: 1px solid #1f2023; }
         .profile-avatar { background: #5865f2; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 10px; }
         .profile-id { font-size: 28px; font-weight: bold; color: #23a55a; font-family: monospace; }
 
-        /* ВСТРОЕННЫЙ МАКЕТ МОДАЛКИ */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; }
-        .modal-overlay.active { display: flex; }
-        .modal-box { background: #2b2d31; border-radius: 16px; border: 1px solid #5865f2; padding: 20px; width: 85%; max-width: 320px; display: flex; flex-direction: column; gap: 12px; }
+        /* ОВЕРЛЕЙ И ОКНО ЗВОНКА (Call Overlay) */
+        .call-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 16, 22, 0.95); z-index: 200; flex-direction: column; align-items: center; justify-content: space-around; padding: 40px 20px; }
+        .call-overlay.active { display: flex; }
+        .call-avatar-big { width: 100px; height: 100px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-size: 42px; color: #fff; box-shadow: 0 0 25px rgba(88, 101, 242, 0.5); }
+        .call-status { font-size: 16px; color: #949ba4; margin-top: 10px; }
+        .call-controls { display: flex; gap: 20px; align-items: center; }
+        .call-action-btn { width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 22px; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-accept { background: #23a55a; }
+        .btn-reject { background: #ed4245; }
+        .btn-mute { background: #4e5058; }
     </style>
 </head>
 <body>
@@ -78,12 +80,15 @@
 
     <div id="messages-screen" class="screen">
         <div class="chat-header">
-            <button class="back-btn" onclick="switchTab('chats')">◄</button>
-            <div id="header-avatar-mini" class="chat-avatar" style="width: 32px; height: 32px; font-size: 13px;">@</div>
-            <div>
-                <div id="active-chat-title" style="font-weight: bold; font-size: 14px; color: #fff;">@ Пользователь</div>
-                <div id="active-chat-sub" style="color: #23a55a; font-size: 10px;">в сети</div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="back-btn" onclick="switchTab('chats')">◄</button>
+                <div id="header-avatar-mini" class="chat-avatar" style="width: 32px; height: 32px; font-size: 13px;">@</div>
+                <div>
+                    <div id="active-chat-title" style="font-weight: bold; font-size: 14px; color: #fff;">@ Пользователь</div>
+                    <div id="active-chat-sub" style="color: #23a55a; font-size: 10px;">в сети</div>
+                </div>
             </div>
+            <button class="call-btn" onclick="startCall()">📞 Звонок</button>
         </div>
 
         <div class="bubble-card" style="flex: 1;">
@@ -103,19 +108,23 @@
             <div id="my-profile-name" style="font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 10px;">Мой Аккаунт</div>
             <div style="color: #949ba4; font-size: 12px;">ПОСТОЯННЫЙ ID</div>
             <div id="my-profile-id" class="profile-id">------</div>
-            <button class="add-btn" style="margin-top: 15px; width: 100%;" onclick="showSettingsModal()">⚙️ Изменить Никнейм</button>
         </div>
     </div>
 
-    <!-- ВСТРОЕННАЯ МОДАЛКА -->
-    <div id="modal-overlay" class="modal-overlay">
-        <div class="modal-box">
-            <div id="modal-title" style="font-weight: bold; font-size: 16px; color: #fff;">Заголовок</div>
-            <input type="text" id="modal-input" class="code-input" style="width: 100%;">
-            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                <button class="add-btn" style="background: #4e5058;" onclick="hideModal()">Отмена</button>
-                <button id="modal-confirm-btn" class="add-btn">Сохранить</button>
-            </div>
+    <!-- ЭКРАН ЗВОНКА -->
+    <div id="call-overlay" class="call-overlay">
+        <div style="text-align: center;">
+            <div id="call-avatar" class="call-avatar-big">👤</div>
+            <div id="call-title" style="font-size: 22px; font-weight: bold; color: #fff; margin-top: 15px;">Пользователь</div>
+            <div id="call-status" class="call-status">Вызов...</div>
+        </div>
+
+        <audio id="remote-audio" autoplay></audio>
+
+        <div class="call-controls">
+            <button id="btn-mute" class="call-action-btn btn-mute" onclick="toggleMute()">🎙️</button>
+            <button id="btn-accept" class="call-action-btn btn-accept" onclick="acceptCall()" style="display: none;">📞</button>
+            <button class="call-action-btn btn-reject" onclick="endCall()">🛑</button>
         </div>
     </div>
 
@@ -155,24 +164,11 @@
         let currentRoom = null;
         let activeListener = null;
 
-        function showSettingsModal() {
-            document.getElementById('modal-title').innerText = "Изменить Никнейм";
-            const input = document.getElementById('modal-input');
-            input.value = myUserName;
-            document.getElementById('modal-confirm-btn').onclick = () => {
-                if (input.value.trim()) {
-                    myUserName = input.value.trim();
-                    localStorage.setItem('my_messenger_name', myUserName);
-                    document.getElementById('my-profile-name').innerText = myUserName;
-                    hideModal();
-                }
-            };
-            document.getElementById('modal-overlay').classList.add('active');
-        }
-
-        function hideModal() {
-            document.getElementById('modal-overlay').classList.remove('active');
-        }
+        // WebRTC переменные
+        let localStream = null;
+        let peerConnection = null;
+        let isMuted = false;
+        const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
         function renderChatList() {
             const list = document.getElementById('chat-list');
@@ -259,17 +255,104 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        db.ref('chats').on('child_added', (roomSnapshot) => {
-            const roomCode = roomSnapshot.key;
-            roomSnapshot.ref.on('child_added', (msgSnapshot) => {
-                const msg = msgSnapshot.val();
-                if (msg.sender !== myUserId && !savedChats[roomCode]) {
-                    savedChats[roomCode] = "Пользователь " + roomCode;
-                    localStorage.setItem('saved_chats', JSON.stringify(savedChats));
-                    renderChatList();
+        // ================= ЛОГИКА ЗВОНКОВ WEBRTC =================
+        async function initMedia() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            } catch(e) {
+                alert("Ошибка доступа к микрофону!");
+            }
+        }
+
+        async function startCall() {
+            if (!currentRoom) return;
+            await initMedia();
+            
+            document.getElementById('call-overlay').classList.add('active');
+            document.getElementById('call-title').innerText = savedChats[currentRoom];
+            document.getElementById('call-status').innerText = "Звоним...";
+            document.getElementById('btn-accept').style.display = 'none';
+
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            peerConnection.ontrack = (event) => {
+                document.getElementById('remote-audio').srcObject = event.streams[0];
+            };
+
+            peerConnection.onicecandidate = (e) => {
+                if (e.candidate) {
+                    db.ref('calls/' + currentRoom + '/candidate').push(JSON.stringify(e.candidate));
+                }
+            };
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            db.ref('calls/' + currentRoom).set({
+                caller: myUserId,
+                offer: JSON.stringify(offer),
+                status: 'calling'
+            });
+
+            db.ref('calls/' + currentRoom + '/answer').on('value', async (snap) => {
+                if (snap.val() && peerConnection.signalingState !== "stable") {
+                    const answer = JSON.parse(snap.val());
+                    await peerConnection.setRemoteDescription(answer);
+                    document.getElementById('call-status').innerText = "Разговор...";
+                }
+            });
+        }
+
+        db.ref('calls').on('child_added', (snap) => {
+            const roomCode = snap.key;
+            snap.ref.on('value', async (roomSnap) => {
+                const callData = roomSnap.val();
+                if (callData && callData.caller !== myUserId && callData.status === 'calling') {
+                    currentRoom = roomCode;
+                    document.getElementById('call-overlay').classList.add('active');
+                    document.getElementById('call-title').innerText = "Входящий вызов от [" + callData.caller + "]";
+                    document.getElementById('call-status').innerText = "Входящий звонок...";
+                    document.getElementById('btn-accept').style.display = 'flex';
                 }
             });
         });
+
+        async function acceptCall() {
+            await initMedia();
+            document.getElementById('btn-accept').style.display = 'none';
+            document.getElementById('call-status').innerText = "Разговор...";
+
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            peerConnection.ontrack = (event) => {
+                document.getElementById('remote-audio').srcObject = event.streams[0];
+            };
+
+            db.ref('calls/' + currentRoom + '/offer').once('value', async (snap) => {
+                const offer = JSON.parse(snap.val());
+                await peerConnection.setRemoteDescription(offer);
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                db.ref('calls/' + currentRoom + '/answer').set(JSON.stringify(answer));
+            });
+        }
+
+        function toggleMute() {
+            if (localStream) {
+                isMuted = !isMuted;
+                localStream.getAudioTracks()[0].enabled = !isMuted;
+                document.getElementById('btn-mute').style.background = isMuted ? '#ed4245' : '#4e5058';
+            }
+        }
+
+        function endCall() {
+            if (peerConnection) peerConnection.close();
+            if (localStream) localStream.getTracks().forEach(t => t.stop());
+            if (currentRoom) db.ref('calls/' + currentRoom).remove();
+            document.getElementById('call-overlay').classList.remove('active');
+        }
 
         function switchTab(tab) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
