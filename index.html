@@ -23,12 +23,12 @@
 <body>
     <div id="main-screen">
         <div class="card">
-            <div style="color: #8e8e93; font-size: 14px;">МОЙ ID (ТЕЛЕФОН)</div>
+            <div style="color: #8e8e93; font-size: 14px;">МОЙ ID</div>
             <div id="my-code" class="my-code">------</div>
         </div>
         <div class="card">
             <input type="number" id="friend-code" placeholder="Введите 6 цифр" oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);">
-            <button onclick="searchDevice()">Найти и Подключиться</button>
+            <button id="btn-connect" onclick="searchDevice()">Найти и Подключиться</button>
         </div>
     </div>
 
@@ -45,11 +45,25 @@
         const myId = Math.floor(100000 + Math.random() * 900000).toString();
         document.getElementById('my-code').innerText = myId;
 
-        // Включены STUN-серверы Google для пробития NAT
+        // Подключаем альтернативный рабочий сервер PeerServer + STUN
         const peer = new Peer(myId, {
-            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] }
+            host: 'peerjs.9252.de',
+            port: 443,
+            secure: true,
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
         });
+
         let conn = null;
+
+        peer.on('error', (err) => {
+            alert('Ошибка сервера/сети: ' + err.type);
+            document.getElementById('btn-connect').innerText = 'Найти и Подключиться';
+        });
 
         peer.on('connection', (c) => {
             conn = c;
@@ -59,17 +73,24 @@
         function searchDevice() {
             const code = document.getElementById('friend-code').value;
             if (code.length !== 6) return alert("Нужно 6 цифр!");
-            conn = peer.connect(code);
+            if (code === myId) return alert("Нельзя к себе!");
+
+            document.getElementById('btn-connect').innerText = 'Подключение...';
+            conn = peer.connect(code, { reliable: true });
             setupChat(code);
         }
 
         function setupChat(peerId) {
+            if (!conn) return;
             document.getElementById('connected-id').innerText = peerId;
+
             conn.on('open', () => {
                 document.getElementById('main-screen').style.display = 'none';
                 document.getElementById('chat-screen').style.display = 'flex';
             });
+
             conn.on('data', (data) => appendMessage(data, 'incoming'));
+            conn.on('close', () => { alert('Связь закрыта'); location.reload(); });
         }
 
         function sendMsg() {
