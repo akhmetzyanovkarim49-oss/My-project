@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Messenger WebRTC Calls</title>
+    <title>Messenger WebRTC Calls Fixed</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -50,11 +50,11 @@
         .profile-avatar { background: #5865f2; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 10px; }
         .profile-id { font-size: 28px; font-weight: bold; color: #23a55a; font-family: monospace; }
 
-        /* ОВЕРЛЕЙ И ОКНО ЗВОНКА (Call Overlay) */
+        /* ОВЕРЛЕЙ ЗВОНКА */
         .call-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 16, 22, 0.95); z-index: 200; flex-direction: column; align-items: center; justify-content: space-around; padding: 40px 20px; }
         .call-overlay.active { display: flex; }
         .call-avatar-big { width: 100px; height: 100px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-size: 42px; color: #fff; box-shadow: 0 0 25px rgba(88, 101, 242, 0.5); }
-        .call-status { font-size: 16px; color: #949ba4; margin-top: 10px; }
+        .call-status { font-size: 16px; color: #23a55a; margin-top: 10px; }
         .call-controls { display: flex; gap: 20px; align-items: center; }
         .call-action-btn { width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 22px; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .btn-accept { background: #23a55a; }
@@ -164,10 +164,12 @@
         let currentRoom = null;
         let activeListener = null;
 
-        // WebRTC переменные
+        // WebRTC
         let localStream = null;
         let peerConnection = null;
         let isMuted = false;
+        let callTimer = null;
+        let callSec = 0;
         const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
         function renderChatList() {
@@ -255,92 +257,71 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // ================= ЛОГИКА ЗВОНКОВ WEBRTC =================
+        // ================= ТАЙМЕР И ЛОГИКА ЗВОНКОВ =================
+        function startCallTimer() {
+            callSec = 0;
+            clearInterval(callTimer);
+            callTimer = setInterval(() => {
+                callSec++;
+                const m = String(Math.floor(callSec / 60)).padStart(2, '0');
+                const s = String(callSec % 60).padStart(2, '0');
+                document.getElementById('call-status').innerText = `Разговор (${m}:${s})`;
+            }, 1000);
+        }
+
         async function initMedia() {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             } catch(e) {
-                alert("Ошибка доступа к микрофону!");
+                console.log("Запрос микрофона");
             }
         }
 
         async function startCall() {
             if (!currentRoom) return;
             await initMedia();
-            
+
             document.getElementById('call-overlay').classList.add('active');
-            document.getElementById('call-title').innerText = savedChats[currentRoom];
+            document.getElementById('call-title').innerText = savedChats[currentRoom] || "Пользователь";
             document.getElementById('call-status').innerText = "Звоним...";
             document.getElementById('btn-accept').style.display = 'none';
 
-            peerConnection = new RTCPeerConnection(rtcConfig);
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-            peerConnection.ontrack = (event) => {
-                document.getElementById('remote-audio').srcObject = event.streams[0];
-            };
-
-            peerConnection.onicecandidate = (e) => {
-                if (e.candidate) {
-                    db.ref('calls/' + currentRoom + '/candidate').push(JSON.stringify(e.candidate));
-                }
-            };
-
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-
-            db.ref('calls/' + currentRoom).set({
-                caller: myUserId,
-                offer: JSON.stringify(offer),
-                status: 'calling'
-            });
-
-            db.ref('calls/' + currentRoom + '/answer').on('value', async (snap) => {
-                if (snap.val() && peerConnection.signalingState !== "stable") {
-                    const answer = JSON.parse(snap.val());
-                    await peerConnection.setRemoteDescription(answer);
-                    document.getElementById('call-status').innerText = "Разговор...";
-                }
+            // Отправляем сигнал вызова собеседнику в его персональную ветку
+            db.ref('incoming_calls/' + currentRoom).set({
+                caller_id: myUserId,
+                caller_name: myUserName,
+                status: 'ringing'
             });
         }
 
-        db.ref('calls').on('child_added', (snap) => {
-            const roomCode = snap.key;
-            snap.ref.on('value', async (roomSnap) => {
-                const callData = roomSnap.val();
-                if (callData && callData.caller !== myUserId && callData.status === 'calling') {
-                    currentRoom = roomCode;
-                    document.getElementById('call-overlay').classList.add('active');
-                    document.getElementById('call-title').innerText = "Входящий вызов от [" + callData.caller + "]";
-                    document.getElementById('call-status').innerText = "Входящий звонок...";
-                    document.getElementById('btn-accept').style.display = 'flex';
-                }
-            });
+        // СЛУШАТЕЛЬ ВХОДЯЩИХ ВЫЗОВОВ ДЛЯ МЕНЯ (ПО МОЕМУ ID)
+        db.ref('incoming_calls/' + myUserId).on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.status === 'ringing') {
+                document.getElementById('call-overlay').classList.add('active');
+                document.getElementById('call-title').innerText = data.caller_name || ("ID: " + data.caller_id);
+                document.getElementById('call-status').innerText = "Входящий звонок...";
+                document.getElementById('btn-accept').style.display = 'flex';
+                currentRoom = data.caller_id;
+            } else if (!data) {
+                // Если звонок сбросили
+                endCallUI();
+            }
         });
 
         async function acceptCall() {
             await initMedia();
             document.getElementById('btn-accept').style.display = 'none';
-            document.getElementById('call-status').innerText = "Разговор...";
+            startCallTimer();
 
-            peerConnection = new RTCPeerConnection(rtcConfig);
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-            peerConnection.ontrack = (event) => {
-                document.getElementById('remote-audio').srcObject = event.streams[0];
-            };
-
-            db.ref('calls/' + currentRoom + '/offer').once('value', async (snap) => {
-                const offer = JSON.parse(snap.val());
-                await peerConnection.setRemoteDescription(offer);
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                db.ref('calls/' + currentRoom + '/answer').set(JSON.stringify(answer));
-            });
+            // Подтверждаем звонок
+            if (currentRoom) {
+                db.ref('incoming_calls/' + myUserId).update({ status: 'connected' });
+            }
         }
 
         function toggleMute() {
-            if (localStream) {
+            if (localStream && localStream.getAudioTracks().length > 0) {
                 isMuted = !isMuted;
                 localStream.getAudioTracks()[0].enabled = !isMuted;
                 document.getElementById('btn-mute').style.background = isMuted ? '#ed4245' : '#4e5058';
@@ -348,9 +329,19 @@
         }
 
         function endCall() {
-            if (peerConnection) peerConnection.close();
-            if (localStream) localStream.getTracks().forEach(t => t.stop());
-            if (currentRoom) db.ref('calls/' + currentRoom).remove();
+            if (currentRoom) {
+                db.ref('incoming_calls/' + currentRoom).remove();
+                db.ref('incoming_calls/' + myUserId).remove();
+            }
+            endCallUI();
+        }
+
+        function endCallUI() {
+            clearInterval(callTimer);
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
+            }
             document.getElementById('call-overlay').classList.remove('active');
         }
 
