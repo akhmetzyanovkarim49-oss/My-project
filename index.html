@@ -3,78 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Mobile Custom</title>
+    <title>Discord Mobile</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-        html, body { height: 100%; width: 100%; background: #0e1621; color: #fff; overflow: hidden; }
+        html, body { height: 100%; width: 100%; background: #313338; color: #dbdee1; overflow: hidden; }
         body { display: flex; flex-direction: column; }
 
         /* ВЕРХНЯЯ ШАПКА ТАБОВ */
-        header { background: #17212b; height: 50px; min-height: 50px; display: flex; align-items: center; justify-content: space-around; border-bottom: 1px solid #0e1621; z-index: 10; }
-        .tab-btn { background: none; border: none; color: #7f91a4; font-size: 15px; font-weight: bold; cursor: pointer; padding: 10px 20px; }
-        .tab-btn.active { color: #64b5ef; border-bottom: 2px solid #64b5ef; }
+        header { background: #1e1f22; height: 50px; min-height: 50px; display: flex; align-items: center; justify-content: space-around; border-bottom: 1px solid #1f2023; z-index: 10; }
+        .tab-btn { background: none; border: none; color: #949ba4; font-size: 15px; font-weight: bold; cursor: pointer; padding: 10px 20px; }
+        .tab-btn.active { color: #ffffff; border-bottom: 2px solid #5865f2; }
 
         /* ЭКРАНЫ */
         .screen { display: none; flex-direction: column; flex: 1; height: calc(100% - 50px); overflow: hidden; }
         .screen.active { display: flex; }
 
         /* 1. ЭКРАН ЧАТОВ */
-        .input-card { padding: 10px 12px; background: #17212b; border-bottom: 1px solid #0e1621; display: flex; gap: 8px; }
-        input.code-input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid #242f3d; background: #0e1621; color: #fff; font-size: 14px; outline: none; }
-        button.add-btn { background: #2b5278; color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .input-card { padding: 10px 12px; background: #2b2d31; border-bottom: 1px solid #1f2023; display: flex; gap: 8px; }
+        input.code-input { flex: 1; padding: 10px 14px; border-radius: 8px; border: 1px solid #1e1f22; background: #1e1f22; color: #fff; font-size: 14px; outline: none; }
+        button.add-btn { background: #5865f2; color: #fff; border: none; border-radius: 8px; padding: 10px 16px; font-weight: bold; font-size: 14px; cursor: pointer; }
 
-        #chat-list { flex: 1; overflow-y: auto; }
-        .chat-item { background: #17212b; padding: 12px 16px; border-bottom: 1px solid #0e1621; display: flex; justify-content: space-between; align-items: center; }
-        .chat-item:active { background: #202b36; }
+        #chat-list { flex: 1; overflow-y: auto; background: #2b2d31; }
+        .chat-item { padding: 12px 16px; border-bottom: 1px solid #232428; display: flex; justify-content: space-between; align-items: center; }
+        .chat-item:active { background: #35373c; }
         .chat-info { flex: 1; display: flex; align-items: center; gap: 12px; }
-        .chat-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: #fff; }
-        .delete-btn { background: transparent; color: #7f91a4; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; font-size: 16px; cursor: pointer; }
-        .delete-btn:active { color: #e53935; background: #242f3d; }
+        .chat-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; color: #fff; }
+        .delete-btn { background: transparent; color: #949ba4; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 16px; cursor: pointer; }
+        .delete-btn:active { color: #ed4245; background: #35373c; }
 
         /* 2. ЭКРАН СООБЩЕНИЙ */
-        .chat-header { background: #17212b; height: 54px; min-height: 54px; padding: 0 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #0e1621; z-index: 5; }
-        .back-btn { background: none; border: none; color: #64b5ef; font-size: 22px; cursor: pointer; padding-right: 5px; }
+        .chat-header { background: #313338; height: 50px; min-height: 50px; padding: 0 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1f2023; z-index: 5; }
+        .back-btn { background: none; border: none; color: #5865f2; font-size: 22px; cursor: pointer; padding-right: 5px; }
 
-        /* Область скролла сообщений */
-        #messages-container { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: #0e1621; }
+        #messages-container { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; background: #313338; }
 
-        /* Пузыри сообщений */
-        .msg-bubble { max-width: 80%; padding: 8px 12px; font-size: 14px; line-height: 1.35; word-break: break-word; display: flex; flex-direction: column; }
-        .msg-bubble.outgoing { 
-            background: #2b5278; color: #fff; align-self: flex-end; 
-            border-top-left-radius: 14px; border-top-right-radius: 14px; border-bottom-left-radius: 14px; border-bottom-right-radius: 4px; 
-        }
-        .msg-bubble.incoming { 
-            background: #182533; color: #fff; align-self: flex-start; 
-            border-top-left-radius: 14px; border-top-right-radius: 14px; border-bottom-left-radius: 4px; border-bottom-right-radius: 14px; 
-        }
-        .msg-time { font-size: 10px; color: rgba(255, 255, 255, 0.5); align-self: flex-end; margin-top: 3px; }
+        /* Сообщения в стиле Discord */
+        .discord-msg { display: flex; gap: 12px; font-size: 14px; line-height: 1.35; word-break: break-word; }
+        .msg-content { flex: 1; display: flex; flex-direction: column; }
+        .msg-meta { font-size: 13px; font-weight: bold; margin-bottom: 2px; }
+        .msg-meta.my { color: #5865f2; }
+        .msg-meta.other { color: #57f287; }
+        .msg-timestamp { font-size: 10px; color: #949ba4; font-weight: normal; margin-left: 6px; }
+        .msg-text { color: #dbdee1; }
 
-        /* ВЖИВЛЕННАЯ СТРОКА ВВОДА (ЖЕЛЕЗОБЕТОННО ВНИЗУ) */
-        .input-area { background: #17212b; padding: 8px 12px; display: flex; gap: 8px; border-top: 1px solid #0e1621; min-height: 58px; align-items: center; }
-        .msg-input { flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid #242f3d; background: #0e1621; color: #fff; font-size: 15px; outline: none; }
-        .msg-input:focus { border-color: #5288c1; }
-        .send-btn { background: #2b5278; color: #fff; border: none; border-radius: 12px; width: 46px; height: 42px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .send-btn:active { background: #386797; }
+        /* Фиксированное поле ввода */
+        .input-area { background: #313338; padding: 10px 12px; display: flex; gap: 8px; border-top: 1px solid #1f2023; min-height: 60px; align-items: center; }
+        .msg-input { flex: 1; padding: 12px 14px; border-radius: 8px; border: none; background: #383a40; color: #fff; font-size: 15px; outline: none; }
+        .send-btn { background: #5865f2; color: #fff; border: none; border-radius: 8px; width: 46px; height: 42px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
         /* 3. ЭКРАН ПРОФИЛЯ */
-        .profile-card { background: #17212b; border-radius: 16px; padding: 24px 16px; text-align: center; margin: 20px; border: 1px solid #242f3d; }
-        .profile-avatar { background: #2b5278; width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px; }
-        .profile-id { font-size: 32px; font-weight: bold; color: #64b5ef; letter-spacing: 2px; font-family: monospace; margin: 10px 0; }
+        .profile-card { background: #2b2d31; border-radius: 12px; padding: 24px 16px; text-align: center; margin: 20px; border: 1px solid #1f2023; }
+        .profile-avatar { background: #5865f2; width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px; }
+        .profile-id { font-size: 32px; font-weight: bold; color: #23a55a; letter-spacing: 2px; font-family: monospace; margin: 10px 0; }
     </style>
 </head>
 <body>
     <header id="main-header">
-        <button class="tab-btn active" onclick="switchTab('chats')">💬 Чаты</button>
+        <button class="tab-btn active" onclick="switchTab('chats')">💬 Личные сообщения</button>
         <button class="tab-btn" onclick="switchTab('profile')">👤 Профиль</button>
     </header>
 
     <!-- 1. ВКЛАДКА ЧАТОВ -->
     <div id="chats-screen" class="screen active">
         <div class="input-card">
-            <input type="number" id="new-code-input" class="code-input" placeholder="Введите 6 цифр ID...">
+            <input type="number" id="new-code-input" class="code-input" placeholder="Введите 6-значный ID...">
             <button class="add-btn" onclick="addNewChat()">+ Чат</button>
         </div>
         <div id="chat-list"></div>
@@ -84,17 +78,17 @@
     <div id="messages-screen" class="screen">
         <div class="chat-header">
             <button class="back-btn" onclick="switchTab('chats')">◄</button>
-            <div id="header-avatar-mini" class="chat-avatar" style="width: 36px; height: 36px; font-size: 14px;">💬</div>
+            <div id="header-avatar-mini" class="chat-avatar" style="width: 34px; height: 34px; font-size: 14px;">@</div>
             <div>
-                <div id="active-chat-title" style="font-weight: bold; font-size: 15px;">Чат</div>
-                <div id="active-chat-sub" style="color: #64b5ef; font-size: 11px;">в сети</div>
+                <div id="active-chat-title" style="font-weight: bold; font-size: 15px; color: #fff;">@ Пользователь</div>
+                <div id="active-chat-sub" style="color: #23a55a; font-size: 11px;">в сети</div>
             </div>
         </div>
 
         <div id="messages-container"></div>
 
         <div class="input-area">
-            <input type="text" id="msg-input" class="msg-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendMsg()">
+            <input type="text" id="msg-input" class="msg-input" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter') sendMsg()">
             <button class="send-btn" onclick="sendMsg()">➔</button>
         </div>
     </div>
@@ -103,9 +97,9 @@
     <div id="profile-screen" class="screen">
         <div class="profile-card">
             <div class="profile-avatar">👤</div>
-            <div style="color: #7f91a4; font-size: 13px;">ВАШ ПОСТОЯННЫЙ ID</div>
+            <div style="color: #949ba4; font-size: 13px;">ВАШ ПОСТОЯННЫЙ ID</div>
             <div id="my-profile-id" class="profile-id">------</div>
-            <div style="color: #7f91a4; font-size: 12px;">Передайте этот ID другу или введите его на ПК для связи.</div>
+            <div style="color: #949ba4; font-size: 12px;">Передайте этот ID другу или введите его на ПК для связи.</div>
         </div>
     </div>
 
@@ -123,7 +117,16 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        const AVATAR_COLORS = ["#2b5278", "#803c73", "#286847", "#855823", "#386588", "#782b4a"];
+        const AVATAR_COLORS = ["#5865f2", "#57f287", "#fee75c", "#eb459e", "#ed4245", "#9b59b6", "#1abc9c"];
+
+        function getAvatarColor(senderId) {
+            let hash = 0;
+            const str = String(senderId);
+            for (let i = 0; i < str.length; i++) {
+                hash += str.charCodeAt(i);
+            }
+            return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+        }
 
         let myUserId = localStorage.getItem('my_messenger_id');
         if (!myUserId || myUserId.length !== 6) {
@@ -136,16 +139,12 @@
         let currentRoom = null;
         let activeListener = null;
 
-        function getAvatarColor(code) {
-            return AVATAR_COLORS[parseInt(code) % AVATAR_COLORS.length] || "#2b5278";
-        }
-
         function renderChatList() {
             const list = document.getElementById('chat-list');
             list.innerHTML = '';
             for (let code in savedChats) {
                 const name = savedChats[code];
-                const firstLetter = name ? name[0].toUpperCase() : '💬';
+                const firstLetter = name ? name[0].toUpperCase() : '@';
                 const color = getAvatarColor(code);
 
                 const div = document.createElement('div');
@@ -154,8 +153,8 @@
                     <div class="chat-info" onclick="openChat('${code}')">
                         <div class="chat-avatar" style="background-color: ${color}">${firstLetter}</div>
                         <div>
-                            <div style="font-weight: bold; font-size: 15px;">${name}</div>
-                            <div style="color:#7f91a4; font-size: 12px;">ID: ${code}</div>
+                            <div style="font-weight: bold; font-size: 14px; color: #f2f3f5;">${name}</div>
+                            <div style="color:#949ba4; font-size: 11px;">ID: ${code}</div>
                         </div>
                     </div>
                     <button class="delete-btn" onclick="deleteChat('${code}')">✕</button>
@@ -167,7 +166,7 @@
         function addNewChat() {
             const code = document.getElementById('new-code-input').value.trim();
             if (code.length === 6) {
-                savedChats[code] = "Чат " + code;
+                savedChats[code] = "Пользователь " + code;
                 localStorage.setItem('saved_chats', JSON.stringify(savedChats));
                 document.getElementById('new-code-input').value = '';
                 renderChatList();
@@ -178,6 +177,7 @@
             if (confirm(`Удалить чат ${savedChats[code]}?`)) {
                 delete savedChats[code];
                 localStorage.setItem('saved_chats', JSON.stringify(savedChats));
+                db.ref('chats/' + code).remove();
                 if (currentRoom === code) {
                     currentRoom = null;
                     switchTab('chats');
@@ -189,11 +189,11 @@
         function openChat(code) {
             currentRoom = code;
             const name = savedChats[code];
-            document.getElementById('active-chat-title').innerText = name;
+            document.getElementById('active-chat-title').innerText = "@ " + name;
             document.getElementById('active-chat-sub').innerText = "ID: " + code + " • в сети";
-            
+
             const miniAv = document.getElementById('header-avatar-mini');
-            miniAv.innerText = name ? name[0].toUpperCase() : '💬';
+            miniAv.innerText = name ? name[0].toUpperCase() : '@';
             miniAv.style.backgroundColor = getAvatarColor(code);
 
             document.getElementById('messages-container').innerHTML = '';
@@ -206,7 +206,7 @@
                 const data = snapshot.val();
                 const isMy = data.sender === myUserId;
                 const timeStr = data.time ? new Date(data.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-                appendMessage(data.text, timeStr, isMy);
+                appendDiscordMessage(data.sender, data.text, timeStr, isMy);
             });
         }
 
@@ -219,16 +219,21 @@
             }
         }
 
-        function appendMessage(text, timeStr, isMy) {
+        function appendDiscordMessage(senderId, text, timeStr, isMy) {
             const container = document.getElementById('messages-container');
             const msgDiv = document.createElement('div');
-            const type = isMy ? 'outgoing' : 'incoming';
-            const statusText = isMy ? `${timeStr}  ✓` : timeStr;
+            msgDiv.className = 'discord-msg';
 
-            msgDiv.className = `msg-bubble ${type}`;
+            const color = isMy ? '#5865f2' : getAvatarColor(senderId);
+            const title = isMy ? 'Вы' : `Пользователь [${senderId}]`;
+            const titleClass = isMy ? 'my' : 'other';
+
             msgDiv.innerHTML = `
-                <div>${text}</div>
-                <div class="msg-time">${statusText}</div>
+                <div class="chat-avatar" style="background-color: ${color}; width: 36px; height: 36px; font-size: 14px;">${title[0]}</div>
+                <div class="msg-content">
+                    <div class="msg-meta ${titleClass}">${title}<span class="msg-timestamp">Сегодня в ${timeStr}</span></div>
+                    <div class="msg-text">${text}</div>
+                </div>
             `;
             container.appendChild(msgDiv);
             container.scrollTop = container.scrollHeight;
@@ -239,7 +244,7 @@
             roomSnapshot.ref.on('child_added', (msgSnapshot) => {
                 const msg = msgSnapshot.val();
                 if (msg.sender !== myUserId && !savedChats[roomCode]) {
-                    savedChats[roomCode] = "Чат " + roomCode;
+                    savedChats[roomCode] = "Пользователь " + roomCode;
                     localStorage.setItem('saved_chats', JSON.stringify(savedChats));
                     renderChatList();
                 }
@@ -260,7 +265,7 @@
                 mainHeader.style.display = 'flex';
                 document.getElementById('profile-screen').classList.add('active');
             } else if (tab === 'messages') {
-                mainHeader.style.display = 'none'; // Скрываем верхние табы, когда открыт конкретный чат
+                mainHeader.style.display = 'none';
                 document.getElementById('messages-screen').classList.add('active');
             }
         }
