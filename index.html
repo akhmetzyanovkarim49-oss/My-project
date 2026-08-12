@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P Messenger</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <title>Встроенный P2P Мессенджер</title>
     <style>
-        * { box-sizing: border-box; font-family: sans-serif; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background: #0f0f10; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; }
-        .card { background: #1a1a1e; border: 1px solid #2a2a2e; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px; }
-        .my-code { font-size: 36px; font-weight: bold; color: #0084ff; letter-spacing: 4px; font-family: monospace; }
-        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #3a3a3c; background: #2c2c2e; color: #fff; font-size: 20px; text-align: center; margin-bottom: 12px; outline: none; }
+        .card { background: #1a1a1e; border: 1px solid #2a2a2e; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 15px; }
+        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #3a3a3c; background: #2c2c2e; color: #fff; font-size: 16px; margin-bottom: 12px; outline: none; }
         button { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #0084ff; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; }
         #chat-screen { display: none; flex-direction: column; height: 100%; }
         #messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; border: 1px solid #2a2a2e; border-radius: 12px; }
@@ -18,87 +16,94 @@
         .incoming { background: #2c2c2e; align-self: flex-start; }
         .outgoing { background: #0084ff; align-self: flex-end; }
         .input-area { display: flex; gap: 10px; margin-top: 15px; }
+        .status { font-size: 12px; color: #30d158; margin-bottom: 8px; }
     </style>
 </head>
 <body>
     <div id="main-screen">
         <div class="card">
-            <div style="color: #8e8e93; font-size: 14px;">МОЙ ID</div>
-            <div id="my-code" class="my-code">------</div>
-        </div>
-        <div class="card">
-            <input type="number" id="friend-code" placeholder="Введите 6 цифр" oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);">
-            <button id="btn-connect" onclick="searchDevice()">Найти и Подключиться</button>
+            <div class="status">● Встроенный сервер активен</div>
+            <h3>Настройка связи</h3>
+            <input type="text" id="my-port" placeholder="Порт этого устройства (например 8080)">
+            <input type="text" id="target-peer" placeholder="Адрес друга (например http://192.168.1.50:8081)">
+            <button onclick="saveAndStart()">Запустить Мессенджер</button>
         </div>
     </div>
 
     <div id="chat-screen">
-        <h3>Чат с [<span id="connected-id">------</span>]</h3>
+        <h3>P2P Мессенджер</h3>
         <div id="messages"></div>
         <div class="input-area">
-            <input type="text" id="msg-input" placeholder="Сообщение..." style="text-align: left;" onkeydown="if(event.key==='Enter') sendMsg()">
+            <input type="text" id="msg-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter') sendMsg()">
             <button onclick="sendMsg()" style="width: 60px;">➔</button>
         </div>
     </div>
 
     <script>
-        const myId = Math.floor(100000 + Math.random() * 900000).toString();
-        document.getElementById('my-code').innerText = myId;
+        const myDeviceId = 'dev_' + Math.floor(Math.random() * 10000);
+        let myPort = localStorage.getItem('my_port') || '8080';
+        let targetPeer = localStorage.getItem('target_peer') || '';
+        let lastMsgId = -1;
 
-        // Подключаем альтернативный рабочий сервер PeerServer + STUN
-        const peer = new Peer(myId, {
-            host: 'peerjs.9252.de',
-            port: 443,
-            secure: true,
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
-                ]
+        if (myPort) document.getElementById('my-port').value = myPort;
+        if (targetPeer) document.getElementById('target-peer').value = targetPeer;
+
+        function saveAndStart() {
+            myPort = document.getElementById('my-port').value.trim() || '8080';
+            targetPeer = document.getElementById('target-peer').value.trim();
+
+            if (targetPeer && !targetPeer.startsWith('http')) {
+                targetPeer = 'http://' + targetPeer;
             }
-        });
 
-        let conn = null;
+            localStorage.setItem('my_port', myPort);
+            localStorage.setItem('target_peer', targetPeer);
 
-        peer.on('error', (err) => {
-            alert('Ошибка сервера/сети: ' + err.type);
-            document.getElementById('btn-connect').innerText = 'Найти и Подключиться';
-        });
+            document.getElementById('main-screen').style.display = 'none';
+            document.getElementById('chat-screen').style.display = 'flex';
 
-        peer.on('connection', (c) => {
-            conn = c;
-            setupChat(c.peer);
-        });
-
-        function searchDevice() {
-            const code = document.getElementById('friend-code').value;
-            if (code.length !== 6) return alert("Нужно 6 цифр!");
-            if (code === myId) return alert("Нельзя к себе!");
-
-            document.getElementById('btn-connect').innerText = 'Подключение...';
-            conn = peer.connect(code, { reliable: true });
-            setupChat(code);
+            // Начинаем слушать свой встроенный сервер без нагрузки на батарею
+            listenSelfServer();
         }
 
-        function setupChat(peerId) {
-            if (!conn) return;
-            document.getElementById('connected-id').innerText = peerId;
-
-            conn.on('open', () => {
-                document.getElementById('main-screen').style.display = 'none';
-                document.getElementById('chat-screen').style.display = 'flex';
-            });
-
-            conn.on('data', (data) => appendMessage(data, 'incoming'));
-            conn.on('close', () => { alert('Связь закрыта'); location.reload(); });
+        async function listenSelfServer() {
+            const selfUrl = `http://localhost:${myPort}`;
+            while (true) {
+                try {
+                    const res = await fetch(`${selfUrl}/api/wait`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ last_id: lastMsgId })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'ok' && data.msgs) {
+                        data.msgs.forEach(m => {
+                            const type = m.sender === myDeviceId ? 'outgoing' : 'incoming';
+                            appendMessage(m.text, type);
+                            lastMsgId = m.id;
+                        });
+                    }
+                } catch (e) {
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
         }
 
-        function sendMsg() {
+        async function sendMsg() {
             const input = document.getElementById('msg-input');
-            if (input.value.trim() !== '' && conn) {
-                conn.send(input.value.trim());
-                appendMessage(input.value.trim(), 'outgoing');
+            const text = input.value.trim();
+            if (text !== '' && targetPeer) {
                 input.value = '';
+                try {
+                    // Прямой POST-запрос на встроенный сервер у друга
+                    await fetch(`${targetPeer}/api/send`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sender: myDeviceId, text: text })
+                    });
+                } catch(e) {
+                    alert("Ошибка доставки! Проверь адрес друга.");
+                }
             }
         }
 
