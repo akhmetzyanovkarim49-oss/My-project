@@ -13,15 +13,16 @@
 
         .header { height: 56px; background: #1a1b22; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #23242c; flex-shrink: 0; }
         .header-title { font-size: 18px; font-weight: bold; color: #5865f2; }
-        .user-badge { font-size: 12px; color: #949ba4; background: #2b2d31; padding: 4px 8px; border-radius: 6px; }
+        .user-badge { font-size: 13px; color: #fff; background: #2b2d31; padding: 6px 10px; border-radius: 8px; cursor: pointer; border: 1px solid #3f4147; }
 
         .search-box { padding: 12px 16px; background: #14151a; display: flex; gap: 8px; flex-shrink: 0; }
         .search-box input { flex: 1; background: #1e1f24; border: 1px solid #2b2d31; color: #fff; padding: 10px 14px; border-radius: 8px; outline: none; font-size: 14px; }
         .search-box button { background: #5865f2; color: #fff; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
         .chat-list { flex: 1; overflow-y: auto; }
-        .chat-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #18191e; cursor: pointer; }
+        .chat-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #18191e; cursor: pointer; }
         .chat-item:active { background: #1a1b22; }
+        .chat-main-info { display: flex; align-items: center; flex: 1; overflow: hidden; }
         .avatar { width: 44px; height: 44px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; margin-right: 12px; flex-shrink: 0; }
         .chat-info { flex: 1; overflow: hidden; }
         .chat-name { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 2px; }
@@ -44,11 +45,11 @@
 </head>
 <body>
 
-    <!-- СПИСОК ЧАТОВ -->
+    <!-- ЭКРАН 1: СПИСОК ЧАТОВ -->
     <div id="mainScreen" class="screen active">
         <div class="header">
             <div class="header-title">Fakagram</div>
-            <div class="user-badge" id="myIdBadge">ID: ...</div>
+            <div class="user-badge" id="myNicknameBadge" onclick="changeNickname()">Ник: ...</div>
         </div>
 
         <div class="search-box">
@@ -59,7 +60,7 @@
         <div class="chat-list" id="chatList"></div>
     </div>
 
-    <!-- ЧАТ С ПОЛЕМ ВВОДА -->
+    <!-- ЭКРАН 2: ЧАТ И ВВОД -->
     <div id="chatScreen" class="screen">
         <div class="header">
             <div class="chat-header">
@@ -84,8 +85,23 @@
         const FIREBASE_URL = "https://mesanger-1157b-default-rtdb.firebaseio.com/";
 
         let myId = localStorage.getItem('fakagram_id') || Math.floor(100000 + Math.random() * 900000).toString();
+        let myNickname = localStorage.getItem('fakagram_nickname') || ('Пользователь ' + myId);
+        
         localStorage.setItem('fakagram_id', myId);
-        document.getElementById('myIdBadge').innerText = 'ID: ' + myId;
+        
+        function updateBadge() {
+            document.getElementById('myNicknameBadge').innerText = myNickname;
+        }
+        updateBadge();
+
+        function changeNickname() {
+            let newName = prompt("Введите новое имя:", myNickname);
+            if (newName && newName.trim() !== "") {
+                myNickname = newName.trim();
+                localStorage.setItem('fakagram_nickname', myNickname);
+                updateBadge();
+            }
+        }
 
         let savedChats = JSON.parse(localStorage.getItem('fakagram_chats') || '[]');
         let activeChatId = null;
@@ -104,12 +120,13 @@
             savedChats.forEach(id => {
                 const item = document.createElement('div');
                 item.className = 'chat-item';
-                item.onclick = () => openChat(id);
                 item.innerHTML = `
-                    <div class="avatar">${id.toString().substring(0,2)}</div>
-                    <div class="chat-info">
-                        <div class="chat-name">Пользователь #${id}</div>
-                        <div class="chat-last-msg">Нажмите, чтобы открыть переписку</div>
+                    <div class="chat-main-info" onclick="openChat('${id}')">
+                        <div class="avatar">${id.toString().substring(0,2)}</div>
+                        <div class="chat-info">
+                            <div class="chat-name">Пользователь #${id}</div>
+                            <div class="chat-last-msg">Нажмите, чтобы открыть диалог</div>
+                        </div>
                     </div>
                 `;
                 listEl.appendChild(item);
@@ -118,7 +135,7 @@
 
         function startNewChat() {
             const input = document.getElementById('newChatInput');
-            const targetId = input.value.trim().replace('@', '');
+            const targetId = input.value.trim();
             if (!targetId) return;
 
             if (!savedChats.includes(targetId)) {
@@ -138,7 +155,6 @@
             document.getElementById('chatScreen').classList.add('active');
             document.getElementById('messagesArea').innerHTML = '';
             
-            // Старт постоянной проверки сообщений из Firebase
             fetchMessages();
             if (listenInterval) clearInterval(listenInterval);
             listenInterval = setInterval(fetchMessages, 1500);
@@ -160,20 +176,17 @@
 
             const payload = {
                 sender: myId,
+                sender_name: myNickname,
                 text: text,
                 timestamp: Date.now()
             };
 
-            // Пушим в ветку адресата
             try {
-                await fetch(`${FIREBASE_URL}/chats/${activeChatId}/messages.json`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                await fetch(`${FIREBASE_URL}/chats/${activeChatId}/messages.json`, { method: 'POST', body: JSON.stringify(payload) });
+                await fetch(`${FIREBASE_URL}/chats/${myId}/messages.json`, { method: 'POST', body: JSON.stringify(payload) });
                 fetchMessages();
             } catch (e) {
-                console.error(" Ошибка отправки:", e);
+                console.error("Ошибка отправки:", e);
             }
         }
 
@@ -181,7 +194,6 @@
             if (!activeChatId) return;
             
             try {
-                // Получаем входящие нам от собеседника и отправленные нами ему
                 const res = await fetch(`${FIREBASE_URL}/chats/${myId}/messages.json`);
                 const data = await res.json();
                 
@@ -202,12 +214,12 @@
                     });
                 }
             } catch (e) {
-                console.error("Ошибка при получении сообщений:", e);
+                console.error("Ошибка сети:", e);
             }
         }
 
         function makeCall() {
-            alert('Вызов пользователя #' + activeChatId);
+            alert('Звонок пользователю #' + activeChatId);
         }
 
         renderChatList();
