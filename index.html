@@ -3,44 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fakagram Messenger</title>
+    <title>Fakagram Mobile</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
-        html, body { height: 100%; width: 100%; overflow: hidden; background: #0f1015; color: #fff; }
+        html, body { height: 100%; width: 100%; overflow: hidden; background: #1e1f22; color: #fff; }
 
-        .screen { display: none; flex-direction: column; height: 100vh; height: 100dvh; width: 100vw; position: absolute; top:0; left:0; background: #0f1015; }
+        .screen { display: none; flex-direction: column; height: 100vh; height: 100dvh; width: 100vw; position: absolute; top:0; left:0; background: #1e1f22; }
         .screen.active { display: flex; }
 
-        .header { height: 56px; background: #1a1b22; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #23242c; flex-shrink: 0; }
+        .header { height: 56px; background: #2b2d31; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1f2023; flex-shrink: 0; }
         .header-title { font-size: 18px; font-weight: bold; color: #5865f2; }
-        .user-badge { font-size: 13px; color: #fff; background: #2b2d31; padding: 6px 10px; border-radius: 8px; cursor: pointer; border: 1px solid #3f4147; }
+        .user-badge { font-size: 12px; color: #23a55a; background: #1e1f22; padding: 6px 10px; border-radius: 8px; font-weight: bold; border: 1px solid #383a40; }
 
-        .search-box { padding: 12px 16px; background: #14151a; display: flex; gap: 8px; flex-shrink: 0; }
-        .search-box input { flex: 1; background: #1e1f24; border: 1px solid #2b2d31; color: #fff; padding: 10px 14px; border-radius: 8px; outline: none; font-size: 14px; }
+        .search-box { padding: 12px 16px; background: #2b2d31; display: flex; gap: 8px; flex-shrink: 0; margin: 8px 12px; border-radius: 12px; }
+        .search-box input { flex: 1; background: #1e1f22; border: 1px solid #383a40; color: #fff; padding: 10px 14px; border-radius: 8px; outline: none; font-size: 14px; }
         .search-box button { background: #5865f2; color: #fff; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        .chat-list { flex: 1; overflow-y: auto; }
-        .chat-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #18191e; cursor: pointer; }
-        .chat-item:active { background: #1a1b22; }
+        .chat-list { flex: 1; overflow-y: auto; padding: 0 12px; }
+        .chat-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #2b2d31; margin-bottom: 8px; border-radius: 12px; cursor: pointer; border: 1px solid #1f2023; }
         .chat-main-info { display: flex; align-items: center; flex: 1; overflow: hidden; }
-        .avatar { width: 44px; height: 44px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; margin-right: 12px; flex-shrink: 0; }
+        .avatar { width: 40px; height: 40px; border-radius: 20px; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; margin-right: 12px; flex-shrink: 0; }
         .chat-info { flex: 1; overflow: hidden; }
-        .chat-name { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 2px; }
-        .chat-last-msg { font-size: 13px; color: #949ba4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-name { font-size: 15px; font-weight: 600; color: #dbdee1; }
 
         .chat-header { display: flex; align-items: center; gap: 12px; }
         .back-btn { background: none; border: none; color: #5865f2; font-size: 22px; cursor: pointer; padding: 4px; }
         .call-btn { background: #23a55a; border: none; width: 36px; height: 36px; border-radius: 8px; color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        .messages-area { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #0f1015; }
+        .messages-area { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #1e1f22; }
         .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-break: break-word; }
         .msg.my { align-self: flex-end; background: #5865f2; color: #fff; border-bottom-right-radius: 2px; }
-        .msg.their { align-self: flex-start; background: #2b2d31; color: #fff; border-bottom-left-radius: 2px; }
+        .msg.their { align-self: flex-start; background: #2b2d31; color: #dbdee1; border-bottom-left-radius: 2px; border: 1px solid #383a40; }
+        .msg-time { font-size: 10px; opacity: 0.6; margin-top: 4px; text-align: right; }
 
-        .input-box { height: 62px; padding: 10px 12px; background: #14151a; display: flex; gap: 8px; align-items: center; border-top: 1px solid #23242c; flex-shrink: 0; }
-        .input-box input { flex: 1; background: #1e1f24; border: 1px solid #2b2d31; color: #fff; padding: 10px 14px; border-radius: 20px; outline: none; font-size: 15px; }
+        .input-box { height: 62px; padding: 10px 12px; background: #2b2d31; display: flex; gap: 8px; align-items: center; border-top: 1px solid #1f2023; flex-shrink: 0; }
+        .input-box input { flex: 1; background: #1e1f22; border: 1px solid #383a40; color: #fff; padding: 10px 14px; border-radius: 20px; outline: none; font-size: 15px; }
         .send-btn { background: #5865f2; border: none; width: 40px; height: 40px; border-radius: 50%; color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-        .empty-state { text-align: center; color: #949ba4; margin-top: 40px; font-size: 14px; line-height: 1.5; }
+        .empty-state { text-align: center; color: #949ba4; margin-top: 40px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -49,7 +48,7 @@
     <div id="mainScreen" class="screen active">
         <div class="header">
             <div class="header-title">Fakagram</div>
-            <div class="user-badge" id="myNicknameBadge" onclick="changeNickname()">...</div>
+            <div class="user-badge" id="myIdBadge">ID: ...</div>
         </div>
 
         <div class="search-box">
@@ -65,10 +64,7 @@
         <div class="header">
             <div class="chat-header">
                 <button class="back-btn" onclick="closeChat()">←</button>
-                <div>
-                    <div class="chat-name" id="currentChatName">Чат</div>
-                    <div style="font-size: 11px; color: #23a55a;">online</div>
-                </div>
+                <div class="chat-name" id="currentChatName">Чат</div>
             </div>
             <button class="call-btn" onclick="makeCall()">📞</button>
         </div>
@@ -82,26 +78,11 @@
     </div>
 
     <script>
-        const FIREBASE_URL = "https://mesanger-1157b-default-rtdb.firebaseio.com/";
+        const FIREBASE_URL = "https://mesanger-1157b-default-rtdb.firebaseio.com";
 
         let myId = localStorage.getItem('fakagram_id') || Math.floor(100000 + Math.random() * 900000).toString();
-        let myNickname = localStorage.getItem('fakagram_nickname') || ('Пользователь ' + myId);
-        
         localStorage.setItem('fakagram_id', myId);
-        
-        function updateBadge() {
-            document.getElementById('myNicknameBadge').innerText = myNickname + ' (ID: ' + myId + ')';
-        }
-        updateBadge();
-
-        function changeNickname() {
-            let newName = prompt("Введите ваше новое имя:", myNickname);
-            if (newName && newName.trim() !== "") {
-                myNickname = newName.trim();
-                localStorage.setItem('fakagram_nickname', myNickname);
-                updateBadge();
-            }
-        }
+        document.getElementById('myIdBadge').innerText = 'ID: ' + myId;
 
         let savedChats = JSON.parse(localStorage.getItem('fakagram_chats') || '[]');
         let activeChatId = null;
@@ -113,19 +94,19 @@
             listEl.innerHTML = '';
 
             if (savedChats.length === 0) {
-                listEl.innerHTML = '<div class="empty-state">Нет активных чатов.<br>Введите ID ПК или друга и нажмите "+ Чат"</div>';
+                listEl.innerHTML = '<div class="empty-state">Нет чатов.<br>Введите ID и нажмите "+ Чат"</div>';
                 return;
             }
 
-            savedChats.forEach(id => {
+            savedChats.forEach(code => {
                 const item = document.createElement('div');
                 item.className = 'chat-item';
+                item.onclick = () => openChat(code);
                 item.innerHTML = `
-                    <div class="chat-main-info" onclick="openChat('${id}')">
-                        <div class="avatar">${id.toString().substring(0,2)}</div>
+                    <div class="chat-main-info">
+                        <div class="avatar">${code.toString().substring(0,2)}</div>
                         <div class="chat-info">
-                            <div class="chat-name">Чат #${id}</div>
-                            <div class="chat-last-msg">Нажмите, чтобы открыть диалог</div>
+                            <div class="chat-name">Пользователь ${code}</div>
                         </div>
                     </div>
                 `;
@@ -147,17 +128,17 @@
             openChat(targetId);
         }
 
-        function openChat(id) {
-            activeChatId = id;
+        function openChat(code) {
+            activeChatId = code;
             loadedMsgIds.clear();
-            document.getElementById('currentChatName').innerText = 'Чат #' + id;
+            document.getElementById('currentChatName').innerText = 'Пользователь ' + code;
             document.getElementById('mainScreen').classList.remove('active');
             document.getElementById('chatScreen').classList.add('active');
             document.getElementById('messagesArea').innerHTML = '';
             
             fetchMessages();
             if (listenInterval) clearInterval(listenInterval);
-            listenInterval = setInterval(fetchMessages, 1500);
+            listenInterval = setInterval(fetchMessages, 1200);
         }
 
         function closeChat() {
@@ -173,19 +154,27 @@
             if (!text || !activeChatId) return;
 
             input.value = '';
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
             const payload = {
+                room_code: myId,
                 sender: myId,
-                sender_name: myNickname,
                 text: text,
+                time: timeStr,
                 timestamp: Date.now()
             };
 
+            // Отрисовываем у себя
+            renderMsg(myId, text, timeStr, true);
+
             try {
-                // Дублируем отправку адресату и себе
-                await fetch(`${FIREBASE_URL}/chats/${activeChatId}/messages.json`, { method: 'POST', body: JSON.stringify(payload) });
-                await fetch(`${FIREBASE_URL}/chats/${myId}/messages.json`, { method: 'POST', body: JSON.stringify(payload) });
-                fetchMessages();
+                // Отправляем в ветку получателя в Firebase
+                await fetch(`${FIREBASE_URL}/chats/${activeChatId}.json`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
             } catch (e) {
                 console.error("Ошибка отправки:", e);
             }
@@ -195,32 +184,34 @@
             if (!activeChatId) return;
             
             try {
-                const res = await fetch(`${FIREBASE_URL}/chats/${myId}/messages.json`);
+                const res = await fetch(`${FIREBASE_URL}/chats/${myId}.json`);
                 const data = await res.json();
                 
                 if (data) {
-                    const area = document.getElementById('messagesArea');
                     Object.keys(data).forEach(key => {
                         if (!loadedMsgIds.has(key)) {
+                            loadedMsgIds.add(key);
                             const msg = data[key];
-                            if (msg.sender === activeChatId || msg.sender === myId) {
-                                loadedMsgIds.add(key);
-                                const msgEl = document.createElement('div');
-                                msgEl.className = msg.sender === myId ? 'msg my' : 'msg their';
-                                msgEl.innerText = msg.text;
-                                area.appendChild(msgEl);
-                                area.scrollTop = area.scrollHeight;
+                            if (msg.sender === activeChatId) {
+                                renderMsg(msg.sender, msg.text, msg.time || '', false);
                             }
                         }
                     });
                 }
-            } catch (e) {
-                console.error("Ошибка сети:", e);
-            }
+            } catch (e) {}
+        }
+
+        function renderMsg(sender, text, timeStr, isMy) {
+            const area = document.getElementById('messagesArea');
+            const msgEl = document.createElement('div');
+            msgEl.className = isMy ? 'msg my' : 'msg their';
+            msgEl.innerHTML = `${text}<div class="msg-time">${timeStr}</div>`;
+            area.appendChild(msgEl);
+            area.scrollTop = area.scrollHeight;
         }
 
         function makeCall() {
-            alert('Звонок пользователю #' + activeChatId);
+            alert('Вызов пользователя ' + activeChatId);
         }
 
         renderChatList();
