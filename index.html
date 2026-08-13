@@ -45,11 +45,11 @@
 </head>
 <body>
 
-    <!-- ЭКРАН 1: СПИСОК ЧАТОВ -->
+    <!-- СПИСОК ЧАТОВ -->
     <div id="mainScreen" class="screen active">
         <div class="header">
             <div class="header-title">Fakagram</div>
-            <div class="user-badge" id="myNicknameBadge" onclick="changeNickname()">Ник: ...</div>
+            <div class="user-badge" id="myNicknameBadge" onclick="changeNickname()">...</div>
         </div>
 
         <div class="search-box">
@@ -60,7 +60,7 @@
         <div class="chat-list" id="chatList"></div>
     </div>
 
-    <!-- ЭКРАН 2: ЧАТ И ВВОД -->
+    <!-- ОКНО ЧАТА -->
     <div id="chatScreen" class="screen">
         <div class="header">
             <div class="chat-header">
@@ -90,12 +90,12 @@
         localStorage.setItem('fakagram_id', myId);
         
         function updateBadge() {
-            document.getElementById('myNicknameBadge').innerText = myNickname;
+            document.getElementById('myNicknameBadge').innerText = myNickname + ' (ID: ' + myId + ')';
         }
         updateBadge();
 
         function changeNickname() {
-            let newName = prompt("Введите новое имя:", myNickname);
+            let newName = prompt("Введите ваше новое имя:", myNickname);
             if (newName && newName.trim() !== "") {
                 myNickname = newName.trim();
                 localStorage.setItem('fakagram_nickname', myNickname);
@@ -113,7 +113,7 @@
             listEl.innerHTML = '';
 
             if (savedChats.length === 0) {
-                listEl.innerHTML = '<div class="empty-state">У вас пока нет активных чатов.<br>Введите ID ПК/собеседника и нажмите "+ Чат"</div>';
+                listEl.innerHTML = '<div class="empty-state">Нет активных чатов.<br>Введите ID ПК или друга и нажмите "+ Чат"</div>';
                 return;
             }
 
@@ -124,7 +124,7 @@
                     <div class="chat-main-info" onclick="openChat('${id}')">
                         <div class="avatar">${id.toString().substring(0,2)}</div>
                         <div class="chat-info">
-                            <div class="chat-name">Пользователь #${id}</div>
+                            <div class="chat-name">Чат #${id}</div>
                             <div class="chat-last-msg">Нажмите, чтобы открыть диалог</div>
                         </div>
                     </div>
@@ -150,7 +150,7 @@
         function openChat(id) {
             activeChatId = id;
             loadedMsgIds.clear();
-            document.getElementById('currentChatName').innerText = 'Пользователь #' + id;
+            document.getElementById('currentChatName').innerText = 'Чат #' + id;
             document.getElementById('mainScreen').classList.remove('active');
             document.getElementById('chatScreen').classList.add('active');
             document.getElementById('messagesArea').innerHTML = '';
@@ -182,6 +182,7 @@
             };
 
             try {
+                // Дублируем отправку адресату и себе
                 await fetch(`${FIREBASE_URL}/chats/${activeChatId}/messages.json`, { method: 'POST', body: JSON.stringify(payload) });
                 await fetch(`${FIREBASE_URL}/chats/${myId}/messages.json`, { method: 'POST', body: JSON.stringify(payload) });
                 fetchMessages();
