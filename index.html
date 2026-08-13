@@ -11,10 +11,13 @@
         .screen { display: none; flex-direction: column; height: 100vh; height: 100dvh; width: 100vw; position: absolute; top:0; left:0; background: #1e1f22; }
         .screen.active { display: flex; }
 
+        /* ШАПКА */
         .header { height: 56px; background: #2b2d31; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1f2023; flex-shrink: 0; }
         .header-title { font-size: 18px; font-weight: bold; color: #5865f2; }
-        .user-badge { font-size: 12px; color: #23a55a; background: #1e1f22; padding: 6px 10px; border-radius: 8px; font-weight: bold; border: 1px solid #383a40; }
+        .user-badge { font-size: 13px; color: #57f287; background: #1e1f22; padding: 6px 10px; border-radius: 8px; font-weight: bold; border: 1px solid #383a40; display: flex; align-items: center; gap: 8px; }
+        .settings-icon { font-size: 16px; cursor: pointer; }
 
+        /* ПОИСК И СПИСОК */
         .search-box { padding: 12px 16px; background: #2b2d31; display: flex; gap: 8px; flex-shrink: 0; margin: 8px 12px; border-radius: 12px; }
         .search-box input { flex: 1; background: #1e1f22; border: 1px solid #383a40; color: #fff; padding: 10px 14px; border-radius: 8px; outline: none; font-size: 14px; }
         .search-box button { background: #5865f2; color: #fff; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
@@ -26,6 +29,7 @@
         .chat-info { flex: 1; overflow: hidden; }
         .chat-name { font-size: 15px; font-weight: 600; color: #dbdee1; }
 
+        /* ЭКРАН ЧАТА */
         .chat-header { display: flex; align-items: center; gap: 12px; }
         .back-btn { background: none; border: none; color: #5865f2; font-size: 22px; cursor: pointer; padding: 4px; }
         .call-btn { background: #23a55a; border: none; width: 36px; height: 36px; border-radius: 8px; color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -40,6 +44,17 @@
         .input-box input { flex: 1; background: #1e1f22; border: 1px solid #383a40; color: #fff; padding: 10px 14px; border-radius: 20px; outline: none; font-size: 15px; }
         .send-btn { background: #5865f2; border: none; width: 40px; height: 40px; border-radius: 50%; color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
         .empty-state { text-align: center; color: #949ba4; margin-top: 40px; font-size: 14px; }
+
+        /* МОДАЛКА НАСТРОЕК ПРОФИЛЯ */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center; z-index: 100; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: #2b2d31; border-radius: 16px; border: 1px solid #5865f2; width: 85%; max-width: 320px; padding: 20px; text-align: center; }
+        .modal-box h3 { margin-bottom: 12px; font-size: 18px; color: #fff; }
+        .modal-box input { width: 100%; background: #1e1f22; border: 1px solid #383a40; color: #fff; padding: 10px; border-radius: 8px; margin-bottom: 12px; outline: none; font-size: 14px; text-align: center; }
+        .modal-btns { display: flex; gap: 8px; }
+        .modal-btns button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-save { background: #5865f2; color: #fff; }
+        .btn-cancel { background: #4e5058; color: #fff; }
     </style>
 </head>
 <body>
@@ -48,11 +63,14 @@
     <div id="mainScreen" class="screen active">
         <div class="header">
             <div class="header-title">Fakagram</div>
-            <div class="user-badge" id="myIdBadge">ID: ...</div>
+            <div class="user-badge">
+                <span id="myUsernameDisplay">@user</span>
+                <span class="settings-icon" onclick="openSettings()">⚙️</span>
+            </div>
         </div>
 
         <div class="search-box">
-            <input type="text" id="newChatInput" placeholder="Введите ID собеседника...">
+            <input type="text" id="newChatInput" placeholder="Введите @username (мин 5 знаков)...">
             <button onclick="startNewChat()">+ Чат</button>
         </div>
 
@@ -77,12 +95,55 @@
         </div>
     </div>
 
+    <!-- МОДАЛЬНОЕ ОКНО НАСТРОЕК ПРОФИЛЯ -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Настройки профиля</h3>
+            <p style="font-size: 12px; color: #949ba4; margin-bottom: 8px;">Ваш уникальный Юзернейм (от 5 символов):</p>
+            <input type="text" id="usernameInput" placeholder="username_123">
+            <div class="modal-btns">
+                <button class="btn-cancel" onclick="closeSettings()">Отмена</button>
+                <button class="btn-save" onclick="saveSettings()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const FIREBASE_URL = "https://mesanger-1157b-default-rtdb.firebaseio.com";
 
-        let myId = localStorage.getItem('fakagram_id') || Math.floor(100000 + Math.random() * 900000).toString();
-        localStorage.setItem('fakagram_id', myId);
-        document.getElementById('myIdBadge').innerText = 'ID: ' + myId;
+        // Генерация дефолтного юзернейма, если нет в памяти
+        let myUsername = localStorage.getItem('fakagram_username');
+        if (!myUsername) {
+            myUsername = 'user_' + Math.floor(1000 + Math.random() * 9000);
+            localStorage.setItem('fakagram_username', myUsername);
+        }
+
+        function updateBadge() {
+            document.getElementById('myUsernameDisplay').innerText = '@' + myUsername;
+        }
+        updateBadge();
+
+        // Управление настройками
+        function openSettings() {
+            document.getElementById('usernameInput').value = myUsername;
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function saveSettings() {
+            let val = document.getElementById('usernameInput').value.trim().replace('@', '');
+            if (val.length < 5) {
+                alert("Юзернейм должен содержать минимум 5 символов!");
+                return;
+            }
+            myUsername = val;
+            localStorage.setItem('fakagram_username', myUsername);
+            updateBadge();
+            closeSettings();
+        }
 
         let savedChats = JSON.parse(localStorage.getItem('fakagram_chats') || '[]');
         let activeChatId = null;
@@ -94,19 +155,19 @@
             listEl.innerHTML = '';
 
             if (savedChats.length === 0) {
-                listEl.innerHTML = '<div class="empty-state">Нет чатов.<br>Введите ID и нажмите "+ Чат"</div>';
+                listEl.innerHTML = '<div class="empty-state">У вас нет чатов.<br>Введите @username друга и нажмите "+ Чат"</div>';
                 return;
             }
 
-            savedChats.forEach(code => {
+            savedChats.forEach(user => {
                 const item = document.createElement('div');
                 item.className = 'chat-item';
-                item.onclick = () => openChat(code);
+                item.onclick = () => openChat(user);
                 item.innerHTML = `
                     <div class="chat-main-info">
-                        <div class="avatar">${code.toString().substring(0,2)}</div>
+                        <div class="avatar">${user.substring(0,2).toUpperCase()}</div>
                         <div class="chat-info">
-                            <div class="chat-name">Пользователь ${code}</div>
+                            <div class="chat-name">@${user}</div>
                         </div>
                     </div>
                 `;
@@ -116,22 +177,28 @@
 
         function startNewChat() {
             const input = document.getElementById('newChatInput');
-            const targetId = input.value.trim();
-            if (!targetId) return;
+            let targetUser = input.value.trim().replace('@', '');
+            
+            if (!targetUser) return;
 
-            if (!savedChats.includes(targetId)) {
-                savedChats.unshift(targetId);
+            if (targetUser.length < 5) {
+                alert("Юзернейм собеседника должен состоять минимум из 5 символов!");
+                return;
+            }
+
+            if (!savedChats.includes(targetUser)) {
+                savedChats.unshift(targetUser);
                 localStorage.setItem('fakagram_chats', JSON.stringify(savedChats));
                 renderChatList();
             }
             input.value = '';
-            openChat(targetId);
+            openChat(targetUser);
         }
 
-        function openChat(code) {
-            activeChatId = code;
+        function openChat(user) {
+            activeChatId = user;
             loadedMsgIds.clear();
-            document.getElementById('currentChatName').innerText = 'Пользователь ' + code;
+            document.getElementById('currentChatName').innerText = '@' + user;
             document.getElementById('mainScreen').classList.remove('active');
             document.getElementById('chatScreen').classList.add('active');
             document.getElementById('messagesArea').innerHTML = '';
@@ -145,6 +212,7 @@
             activeChatId = null;
             if (listenInterval) clearInterval(listenInterval);
             document.getElementById('chatScreen').classList.remove('active');
+            document.getElementById('mainScreen').classList.active;
             document.getElementById('mainScreen').classList.add('active');
         }
 
@@ -158,18 +226,17 @@
             const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
             const payload = {
-                room_code: myId,
-                sender: myId,
+                room_code: myUsername,
+                sender: myUsername,
                 text: text,
                 time: timeStr,
                 timestamp: Date.now()
             };
 
-            // Отрисовываем у себя
-            renderMsg(myId, text, timeStr, true);
+            renderMsg(myUsername, text, timeStr, true);
 
             try {
-                // Отправляем в ветку получателя в Firebase
+                // Пушим сообщение собеседнику по его юзернейму
                 await fetch(`${FIREBASE_URL}/chats/${activeChatId}.json`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -184,7 +251,7 @@
             if (!activeChatId) return;
             
             try {
-                const res = await fetch(`${FIREBASE_URL}/chats/${myId}.json`);
+                const res = await fetch(`${FIREBASE_URL}/chats/${myUsername}.json`);
                 const data = await res.json();
                 
                 if (data) {
@@ -211,7 +278,7 @@
         }
 
         function makeCall() {
-            alert('Вызов пользователя ' + activeChatId);
+            alert('Звонок пользователю @' + activeChatId);
         }
 
         renderChatList();
