@@ -2,11 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messenger Mobile</title>
-    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fakagram Mobile</title>
+    <link rel="stylesheet" href="style.css">
     
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
@@ -14,32 +14,33 @@
 
     <div id="app">
         <!-- Шапка -->
-        <header>
-            <h1>Messenger</h1>
-            <span id="my-id-display">Мой ID: ...</span>
+        <header class="top-bar">
+            <div class="user-info">
+                <h2>Fakagram</h2>
+                <span id="my-id-display">ID: ...</span>
+            </div>
+            <button id="call-action-btn" onclick="makeCall()" class="icon-btn call-btn">📞</button>
         </header>
 
-        <!-- Поиск / Добавление чата -->
-        <div class="chat-search">
-            <input type="text" id="target-id-input" placeholder="Введите ID собеседника">
+        <!-- Поиск / Открытие чата -->
+        <div class="search-bar">
+            <input type="text" id="target-id-input" placeholder="Введите ID собеседника...">
             <button onclick="startNewChat()">+ Чат</button>
-            <button onclick="makeCall()" class="call-btn">📞 Звонок</button>
         </div>
 
-        <!-- Окно сообщений -->
-        <div id="chat-box" class="chat-box"></div>
+        <!-- Окно диалога -->
+        <div id="chat-box" class="chat-box">
+            <div class="placeholder-text">Выберите или введите ID для начала общения</div>
+        </div>
 
-        <!-- Форма отправки -->
-        <div class="input-box">
-            <input type="text" id="message-input" placeholder="Сообщение...">
-            <button onclick="sendMessage()">Отправить</button>
+        <!-- Панель ввода сообщения -->
+        <div class="input-bar">
+            <input type="text" id="message-input" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()" class="send-btn">➤</button>
         </div>
     </div>
 
-    <!-- Модульные скрипты -->
-    <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/call.js"></script>
-    <script src="js/app.js"></script>
+    <!-- Единственный логический скрипт -->
+    <script src="main.js"></script>
 </body>
 </html>
