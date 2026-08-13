@@ -6,20 +6,15 @@
     <title>Fakagram Messenger</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
-        
-        /* Исправление высоты под мобильные браузеры */
         html, body { height: 100%; width: 100%; overflow: hidden; background: #0f1015; color: #fff; }
 
-        /* ОСНОВНЫЕ ЭКРАНЫ */
         .screen { display: none; flex-direction: column; height: 100vh; height: 100dvh; width: 100vw; position: absolute; top:0; left:0; background: #0f1015; }
         .screen.active { display: flex; }
 
-        /* ШАПКИ */
         .header { height: 56px; background: #1a1b22; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #23242c; flex-shrink: 0; }
         .header-title { font-size: 18px; font-weight: bold; color: #5865f2; }
         .user-badge { font-size: 12px; color: #949ba4; background: #2b2d31; padding: 4px 8px; border-radius: 6px; }
 
-        /* СПИСОК ЧАТОВ */
         .search-box { padding: 12px 16px; background: #14151a; display: flex; gap: 8px; flex-shrink: 0; }
         .search-box input { flex: 1; background: #1e1f24; border: 1px solid #2b2d31; color: #fff; padding: 10px 14px; border-radius: 8px; outline: none; font-size: 14px; }
         .search-box button { background: #5865f2; color: #fff; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
@@ -32,18 +27,15 @@
         .chat-name { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 2px; }
         .chat-last-msg { font-size: 13px; color: #949ba4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* ЧАТ И ВВОД (ЖЕСТКАЯ СТРУКТУРА) */
         .chat-header { display: flex; align-items: center; gap: 12px; }
         .back-btn { background: none; border: none; color: #5865f2; font-size: 22px; cursor: pointer; padding: 4px; }
         .call-btn { background: #23a55a; border: none; width: 36px; height: 36px; border-radius: 8px; color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        /* Область сообщений с изолированным скроллом */
         .messages-area { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #0f1015; }
         .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-break: break-word; }
         .msg.my { align-self: flex-end; background: #5865f2; color: #fff; border-bottom-right-radius: 2px; }
         .msg.their { align-self: flex-start; background: #2b2d31; color: #fff; border-bottom-left-radius: 2px; }
 
-        /* ПАНЕЛЬ ВВОДА (ВСЕГДА ВНИЗУ) */
         .input-box { height: 62px; padding: 10px 12px; background: #14151a; display: flex; gap: 8px; align-items: center; border-top: 1px solid #23242c; flex-shrink: 0; }
         .input-box input { flex: 1; background: #1e1f24; border: 1px solid #2b2d31; color: #fff; padding: 10px 14px; border-radius: 20px; outline: none; font-size: 15px; }
         .send-btn { background: #5865f2; border: none; width: 40px; height: 40px; border-radius: 50%; color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
@@ -52,7 +44,7 @@
 </head>
 <body>
 
-    <!-- ЭКРАН 1: СПИСОК ЧАТОВ -->
+    <!-- СПИСОК ЧАТОВ -->
     <div id="mainScreen" class="screen active">
         <div class="header">
             <div class="header-title">Fakagram</div>
@@ -67,7 +59,7 @@
         <div class="chat-list" id="chatList"></div>
     </div>
 
-    <!-- ЭКРАН 2: ЧАТ И ПОЛЕ ВВОДА -->
+    <!-- ЧАТ С ПОЛЕМ ВВОДА -->
     <div id="chatScreen" class="screen">
         <div class="header">
             <div class="chat-header">
@@ -80,10 +72,8 @@
             <button class="call-btn" onclick="makeCall()">📞</button>
         </div>
 
-        <!-- Окно сообщений -->
         <div class="messages-area" id="messagesArea"></div>
 
-        <!-- Поле ввода (зафиксировано) -->
         <div class="input-box">
             <input type="text" id="messageInput" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendMessage()">
             <button class="send-btn" onclick="sendMessage()">➤</button>
@@ -91,19 +81,23 @@
     </div>
 
     <script>
+        const FIREBASE_URL = "https://mesanger-1157b-default-rtdb.firebaseio.com/";
+
         let myId = localStorage.getItem('fakagram_id') || Math.floor(100000 + Math.random() * 900000).toString();
         localStorage.setItem('fakagram_id', myId);
         document.getElementById('myIdBadge').innerText = 'ID: ' + myId;
 
         let savedChats = JSON.parse(localStorage.getItem('fakagram_chats') || '[]');
         let activeChatId = null;
+        let loadedMsgIds = new Set();
+        let listenInterval = null;
 
         function renderChatList() {
             const listEl = document.getElementById('chatList');
             listEl.innerHTML = '';
 
             if (savedChats.length === 0) {
-                listEl.innerHTML = '<div class="empty-state">У вас пока нет активных чатов.<br>Введите ID сверху и нажмите "+ Чат"</div>';
+                listEl.innerHTML = '<div class="empty-state">У вас пока нет активных чатов.<br>Введите ID ПК/собеседника и нажмите "+ Чат"</div>';
                 return;
             }
 
@@ -115,7 +109,7 @@
                     <div class="avatar">${id.toString().substring(0,2)}</div>
                     <div class="chat-info">
                         <div class="chat-name">Пользователь #${id}</div>
-                        <div class="chat-last-msg">Нажмите, чтобы открыть диалог</div>
+                        <div class="chat-last-msg">Нажмите, чтобы открыть переписку</div>
                     </div>
                 `;
                 listEl.appendChild(item);
@@ -138,38 +132,82 @@
 
         function openChat(id) {
             activeChatId = id;
+            loadedMsgIds.clear();
             document.getElementById('currentChatName').innerText = 'Пользователь #' + id;
             document.getElementById('mainScreen').classList.remove('active');
             document.getElementById('chatScreen').classList.add('active');
+            document.getElementById('messagesArea').innerHTML = '';
             
-            // Автоскролл вниз при открытии
-            const area = document.getElementById('messagesArea');
-            area.scrollTop = area.scrollHeight;
+            // Старт постоянной проверки сообщений из Firebase
+            fetchMessages();
+            if (listenInterval) clearInterval(listenInterval);
+            listenInterval = setInterval(fetchMessages, 1500);
         }
 
         function closeChat() {
             activeChatId = null;
+            if (listenInterval) clearInterval(listenInterval);
             document.getElementById('chatScreen').classList.remove('active');
             document.getElementById('mainScreen').classList.add('active');
         }
 
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             if (!text || !activeChatId) return;
 
-            const area = document.getElementById('messagesArea');
-            const msgEl = document.createElement('div');
-            msgEl.className = 'msg my';
-            msgEl.innerText = text;
-            area.appendChild(msgEl);
-
             input.value = '';
-            area.scrollTop = area.scrollHeight;
+
+            const payload = {
+                sender: myId,
+                text: text,
+                timestamp: Date.now()
+            };
+
+            // Пушим в ветку адресата
+            try {
+                await fetch(`${FIREBASE_URL}/chats/${activeChatId}/messages.json`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                fetchMessages();
+            } catch (e) {
+                console.error(" Ошибка отправки:", e);
+            }
+        }
+
+        async function fetchMessages() {
+            if (!activeChatId) return;
+            
+            try {
+                // Получаем входящие нам от собеседника и отправленные нами ему
+                const res = await fetch(`${FIREBASE_URL}/chats/${myId}/messages.json`);
+                const data = await res.json();
+                
+                if (data) {
+                    const area = document.getElementById('messagesArea');
+                    Object.keys(data).forEach(key => {
+                        if (!loadedMsgIds.has(key)) {
+                            const msg = data[key];
+                            if (msg.sender === activeChatId || msg.sender === myId) {
+                                loadedMsgIds.add(key);
+                                const msgEl = document.createElement('div');
+                                msgEl.className = msg.sender === myId ? 'msg my' : 'msg their';
+                                msgEl.innerText = msg.text;
+                                area.appendChild(msgEl);
+                                area.scrollTop = area.scrollHeight;
+                            }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Ошибка при получении сообщений:", e);
+            }
         }
 
         function makeCall() {
-            alert('Звонок пользователю #' + activeChatId);
+            alert('Вызов пользователя #' + activeChatId);
         }
 
         renderChatList();
