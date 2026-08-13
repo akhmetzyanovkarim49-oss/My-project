@@ -1,0 +1,155 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: #0f1015;
+    color: #ffffff;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+}
+
+#app {
+    width: 100%;
+    max-width: 480px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #17181e;
+}
+
+/* Шапка */
+.top-bar {
+    padding: 12px 16px;
+    background-color: #1e1f26;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #2b2c36;
+}
+
+.user-info h2 {
+    font-size: 18px;
+    color: #5865f2;
+}
+
+.user-info span {
+    font-size: 12px;
+    color: #949ba4;
+}
+
+.icon-btn {
+    background: #2b2d31;
+    border: none;
+    color: white;
+    font-size: 18px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.call-btn {
+    background: #23a55a;
+}
+
+/* Поиск */
+.search-bar {
+    padding: 10px 16px;
+    display: flex;
+    gap: 8px;
+    background-color: #1e1f26;
+}
+
+.search-bar input {
+    flex: 1;
+    background: #2b2c36;
+    border: 1px solid #353743;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: white;
+    outline: none;
+}
+
+.search-bar button {
+    background: #5865f2;
+    border: none;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Чат */
+.chat-box {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.placeholder-text {
+    text-align: center;
+    color: #6d6f7c;
+    margin-top: 40px;
+    font-size: 14px;
+}
+
+.message {
+    max-width: 75%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 15px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.message.my {
+    align-self: flex-end;
+    background-color: #5865f2;
+    color: white;
+    border-bottom-right-radius: 2px;
+}
+
+.message.other {
+    align-self: flex-start;
+    background-color: #2b2d31;
+    color: white;
+    border-bottom-left-radius: 2px;
+}
+
+/* Панель ввода */
+.input-bar {
+    padding: 12px 16px;
+    background-color: #1e1f26;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid #2b2c36;
+}
+
+.input-bar input {
+    flex: 1;
+    background: #2b2c36;
+    border: 1px solid #353743;
+    padding: 12px;
+    border-radius: 10px;
+    color: white;
+    outline: none;
+}
+
+.send-btn {
+    background: #5865f2;
+    border: none;
+    color: white;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
